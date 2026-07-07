@@ -1,0 +1,137 @@
+import ErrorState from "./ErrorState";
+import StepLoader from "./StepLoader";
+
+const GAP_STEPS = [
+  "Reading the job description…",
+  "Extracting the real requirements…",
+  "Comparing against your resume semantically…",
+];
+
+function ChipList({ title, items, tone }) {
+  const toneClasses =
+    tone === "matched"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : "border-red-200 bg-red-50 text-red-800";
+  return (
+    <div>
+      <h4 className="text-sm font-semibold text-ink-700">
+        {title}{" "}
+        <span className="font-normal text-ink-400">({items.length})</span>
+      </h4>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {items.length === 0 && (
+          <li className="text-sm text-ink-400">None</li>
+        )}
+        {items.map((skill) => (
+          <li
+            key={skill}
+            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium ${toneClasses}`}
+          >
+            {tone === "matched" ? "✓ " : "+ "}
+            {skill}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Module 5.2: JD intake + matched-vs-missing comparison + match bar. */
+export default function GapSection({
+  resume,
+  gap,
+  jdText,
+  onJdTextChange,
+  running,
+  error,
+  onRun,
+}) {
+  const ready = Boolean(resume);
+  const canRun = ready && jdText.trim().length >= 40 && !running;
+
+  return (
+    <div className="rounded-2xl border border-paper-200 bg-white p-6 shadow-card">
+      {!ready && (
+        <p className="text-sm text-ink-400">
+          Upload a resume first — the gap mapper compares the job description
+          against your parsed resume.
+        </p>
+      )}
+      {ready && (
+        <>
+          <label htmlFor="jd-text" className="block text-sm font-semibold text-ink-700">
+            Paste the job description
+          </label>
+          <textarea
+            id="jd-text"
+            rows={7}
+            value={jdText}
+            onChange={(event) => onJdTextChange(event.target.value)}
+            placeholder="Paste the full posting — requirements, responsibilities, all of it. More text means a sharper map."
+            className="mt-2 w-full rounded-xl border border-paper-300 bg-paper-50 px-4 py-3 text-sm text-ink-900 placeholder-ink-400 transition-colors focus:border-gold-500"
+          />
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={!canRun}
+              onClick={onRun}
+              className="rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-paper-50 transition-all hover:bg-ink-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {gap ? "Re-map against this JD" : "Map my gaps"}
+            </button>
+            {jdText.trim().length > 0 && jdText.trim().length < 40 && (
+              <p className="text-xs text-ink-400">
+                Paste at least a few sentences of the posting.
+              </p>
+            )}
+          </div>
+
+          {running && (
+            <div className="mt-5 max-w-sm">
+              <StepLoader steps={GAP_STEPS} />
+            </div>
+          )}
+          {error && !running && (
+            <div className="mt-4">
+              <ErrorState message={error} onRetry={canRun ? onRun : null} />
+            </div>
+          )}
+
+          {gap && !running && (
+            <div className="mt-6 border-t border-paper-200 pt-6">
+              <div className="flex items-end justify-between">
+                <p className="text-sm font-semibold text-ink-700">Match strength</p>
+                <p className="font-display text-3xl font-semibold text-ink-900">
+                  {gap.match_percentage}
+                  <span className="text-base font-medium text-ink-400">%</span>
+                </p>
+              </div>
+              <div
+                role="progressbar"
+                aria-valuenow={gap.match_percentage}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Job match percentage"
+                className="mt-2 h-2.5 overflow-hidden rounded-full bg-paper-200"
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-400 transition-all duration-1000 ease-out"
+                  style={{ width: `${gap.match_percentage}%` }}
+                />
+              </div>
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <ChipList title="You already cover" items={gap.matched} tone="matched" />
+                <ChipList title="Missing for this role" items={gap.missing} tone="missing" />
+              </div>
+              {gap.cached && (
+                <p role="status" className="mt-4 text-xs text-ink-400">
+                  Served from cache — this exact resume + JD pair was mapped before.
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
