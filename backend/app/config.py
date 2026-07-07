@@ -8,6 +8,7 @@ naming the exact variable — never a silent failure inside a request handler.
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -51,6 +52,23 @@ class Settings(BaseSettings):
     backend_cors_origins: str = "http://localhost:5173"
     max_upload_mb: int = 5
     upload_rate_limit_per_hour: int = 20
+
+    @field_validator(
+        "gemini_model",
+        "gemini_embedding_model",
+        "gemini_timeout_seconds",
+        "backend_cors_origins",
+        "max_upload_mb",
+        "upload_rate_limit_per_hour",
+        mode="before",
+    )
+    @classmethod
+    def _empty_means_default(cls, value, info):
+        """Optional vars left blank in .env (e.g. ``MAX_UPLOAD_MB=``) fall
+        back to their defaults instead of failing numeric parsing."""
+        if isinstance(value, str) and not value.strip():
+            return cls.model_fields[info.field_name].default
+        return value
 
     @property
     def cors_origins_list(self) -> list[str]:
