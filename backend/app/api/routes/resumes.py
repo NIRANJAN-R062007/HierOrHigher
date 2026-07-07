@@ -10,6 +10,10 @@ from app.api.deps import (
     get_resume_parser_gemini,
 )
 from app.core.file_validation import FileValidationError
+from app.models.gap_report import GapReportResponse
+from app.models.interview import InterviewQuestion, InterviewSetResponse
+from app.models.overview import ResumeOverview
+from app.models.profile import ProfileDraftResponse, ProjectRewrite, ToneVariants
 from app.models.resume import ResumeListItem, ResumeResponse
 from app.services.resume_service import (
     UnparseableResumeError,
@@ -58,6 +62,72 @@ def list_resumes(
         )
         for row in repo.list_resumes(user.id)
     ]
+
+
+@router.get("/{resume_id}/overview", response_model=ResumeOverview)
+def get_resume_overview(
+    resume_id: str,
+    user: AuthenticatedUser = Depends(get_current_user),
+    repo=Depends(get_repository),
+) -> ResumeOverview:
+    """Return every module's persisted result for one resume in a single call.
+
+    Powers the dashboard reload: previous results render without any
+    re-processing. Uses no Gemini key (persisted data only).
+    """
+    row = repo.get_resume(user.id, resume_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    gap_row = repo.latest_gap_report(resume_id)
+    interview_row = repo.latest_interview_set(resume_id)
+    profile_row = repo.latest_profile_draft(resume_id)
+
+    jd_text = None
+    if gap_row is not None:
+        jd_row = repo.get_job_description(user.id, str(gap_row["jd_id"]))
+        jd_text = jd_row["raw_text"] if jd_row else None
+
+    return ResumeOverview(
+        resume=response_from_row(row, cached=True),
+        gap_report=GapReportResponse(
+            gap_report_id=str(gap_row["id"]),
+            resume_id=resume_id,
+            jd_id=str(gap_row["jd_id"]),
+            matched=gap_row["matched"],
+            missing=gap_row["missing"],
+            match_percentage=gap_row["match_percentage"],
+            cached=True,
+        )
+        if gap_row
+        else None,
+        interview_set=InterviewSetResponse(
+            interview_set_id=str(interview_row["id"]),
+            resume_id=resume_id,
+            jd_id=str(interview_row["jd_id"]),
+            questions=[
+                InterviewQuestion.model_validate(q)
+                for q in interview_row["questions"]
+            ],
+            cached=True,
+        )
+        if interview_row
+        else None,
+        profile_draft=ProfileDraftResponse(
+            profile_draft_id=str(profile_row["id"]),
+            resume_id=resume_id,
+            headline=ToneVariants.model_validate(profile_row["headline"]),
+            about=ToneVariants.model_validate(profile_row["about"]),
+            project_descriptions=[
+                ProjectRewrite.model_validate(p)
+                for p in profile_row["project_descriptions"]
+            ],
+            cached=True,
+        )
+        if profile_row
+        else None,
+        job_description_text=jd_text,
+    )
 
 
 @router.get("/{resume_id}", response_model=ResumeResponse)
