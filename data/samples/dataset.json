@@ -1,0 +1,215 @@
+{
+  "note": "Sample dataset for tests and demo seeding. The asha/CloudCore pair is the acceptance-criteria fixture: its gap report must show exactly 3 missing skills (Kubernetes, GraphQL, Terraform).",
+  "personas": [
+    {
+      "key": "asha",
+      "resume_filename": "asha_venkat_resume.docx",
+      "resume_text": "ASHA VENKAT\nBengaluru, India | asha.venkat@example.com | +91 98765 43210 | linkedin.com/in/ashavenkat\n\nSUMMARY\nBackend engineer with 4 years of experience designing high-throughput APIs and data pipelines for fintech products. Comfortable owning services end to end, from schema design and API contracts to deployment, monitoring, and on-call. Known for pairing strong system design instincts with pragmatic delivery.\n\nSKILLS\nPython, FastAPI, REST APIs, PostgreSQL, Docker, AWS, Redis, Celery, Git, CI/CD\n\nEXPERIENCE\nSenior Backend Engineer — Finlytics (2023 – Present)\n- Designed and shipped a REST API platform serving 2.3M requests per day with p95 latency under 180ms\n- Reduced PostgreSQL query latency by 45% by redesigning indexes and connection pooling\n- Led a team of 3 engineers migrating payment reconciliation to event-driven Celery workers, cutting settlement time from 6 hours to 40 minutes\n\nBackend Engineer — CredWise (2021 – 2023)\n- Built KYC verification microservices in Python handling 50,000 daily onboarding checks\n- Automated deployment pipelines with Docker and GitHub Actions, reducing release time by 70%\n- Implemented Redis caching that cut customer dashboard load times from 4 seconds to 800ms\n\nPROJECTS\nLedgerLite — Open-source double-entry bookkeeping API built with FastAPI and PostgreSQL; 1,200 GitHub stars and 14 external contributors\nRateWatch — Serverless currency alert service using AWS Lambda, SQS, and PostgreSQL that delivers 30,000 alerts per month\n\nEDUCATION\nB.E. Computer Science, PES University (2017 – 2021)\n\nCERTIFICATIONS\nAWS Certified Developer – Associate",
+      "parsed": {
+        "name": "Asha Venkat",
+        "contact": {
+          "email": "asha.venkat@example.com",
+          "phone": "+91 98765 43210",
+          "location": "Bengaluru, India",
+          "linkedin": "linkedin.com/in/ashavenkat"
+        },
+        "skills": ["Python", "FastAPI", "REST APIs", "PostgreSQL", "Docker", "AWS", "Redis", "Celery", "Git", "CI/CD"],
+        "experience": [
+          {
+            "title": "Senior Backend Engineer",
+            "company": "Finlytics",
+            "start_date": "2023",
+            "end_date": "Present",
+            "bullets": [
+              "Designed and shipped a REST API platform serving 2.3M requests per day with p95 latency under 180ms",
+              "Reduced PostgreSQL query latency by 45% by redesigning indexes and connection pooling",
+              "Led a team of 3 engineers migrating payment reconciliation to event-driven Celery workers, cutting settlement time from 6 hours to 40 minutes"
+            ]
+          },
+          {
+            "title": "Backend Engineer",
+            "company": "CredWise",
+            "start_date": "2021",
+            "end_date": "2023",
+            "bullets": [
+              "Built KYC verification microservices in Python handling 50,000 daily onboarding checks",
+              "Automated deployment pipelines with Docker and GitHub Actions, reducing release time by 70%",
+              "Implemented Redis caching that cut customer dashboard load times from 4 seconds to 800ms"
+            ]
+          }
+        ],
+        "education": [
+          {"degree": "B.E. Computer Science", "institution": "PES University", "year": "2017 – 2021"}
+        ],
+        "certifications": ["AWS Certified Developer – Associate"],
+        "projects": [
+          {
+            "name": "LedgerLite",
+            "description": "Open-source double-entry bookkeeping API built with FastAPI and PostgreSQL; 1,200 GitHub stars and 14 external contributors",
+            "technologies": ["FastAPI", "PostgreSQL"]
+          },
+          {
+            "name": "RateWatch",
+            "description": "Serverless currency alert service using AWS Lambda, SQS, and PostgreSQL that delivers 30,000 alerts per month",
+            "technologies": ["AWS Lambda", "SQS", "PostgreSQL"]
+          }
+        ]
+      },
+      "human_score": {
+        "value": 84,
+        "breakdown": [
+          "Strong quantified impact in 5 of 6 experience bullets",
+          "Summary is specific about scope and ownership",
+          "Project descriptions state adoption metrics, not just tech lists",
+          "Skills section mixes tools and practices — consider grouping",
+          "No keywords for orchestration or infra-as-code despite senior scope"
+        ]
+      },
+      "job_description": {
+        "title": "Senior Backend Engineer",
+        "company": "CloudCore",
+        "raw_text": "Senior Backend Engineer — CloudCore (Remote)\n\nCloudCore builds the control plane for multi-cloud deployments. We are hiring a Senior Backend Engineer to own core platform services.\n\nWhat you will do:\n- Design and operate high-availability APIs consumed by thousands of engineering teams\n- Own PostgreSQL schema design and query performance for the platform's metadata store\n- Evolve our GraphQL gateway that fronts internal service APIs\n- Run workloads on Kubernetes and manage infrastructure with Terraform\n\nRequirements:\n- 4+ years building backend services in Python\n- Deep experience designing and versioning REST APIs\n- Production PostgreSQL experience, including performance tuning\n- Hands-on Kubernetes experience (deployment, scaling, debugging)\n- Experience with GraphQL schema design and federation\n- Infrastructure-as-code experience with Terraform",
+        "requirements": ["Python", "REST APIs", "PostgreSQL", "Kubernetes", "GraphQL", "Terraform"]
+      },
+      "expected_gap": {
+        "matched": ["Python", "REST APIs", "PostgreSQL"],
+        "missing": ["Kubernetes", "GraphQL", "Terraform"],
+        "match_percentage": 50
+      },
+      "interview_questions": [
+        {"category": "Technical", "question": "Your REST platform at Finlytics serves 2.3M requests/day at a p95 under 180ms. Walk me through how you'd diagnose a sudden p95 regression to 500ms — what do you look at first and why?"},
+        {"category": "Technical", "question": "You reduced PostgreSQL query latency by 45% through index and pooling changes. How do you decide when an index helps versus when it hurts write-heavy tables like a payments ledger?"},
+        {"category": "Technical", "question": "LedgerLite implements double-entry bookkeeping in FastAPI. How did you enforce transactional integrity across accounts, and what would break first under concurrent postings?"},
+        {"category": "Technical", "question": "You moved payment reconciliation to Celery-based event-driven workers. How did you handle idempotency and poison messages, and what monitoring told you the migration was safe?"},
+        {"category": "Behavioral", "question": "Tell me about leading the 3-engineer reconciliation migration at Finlytics. How did you split the work, and what did you do when the timeline slipped?"},
+        {"category": "Behavioral", "question": "Describe a time at CredWise when an automation you built (like the CI/CD pipeline) broke something downstream. How did you handle the fallout and what changed afterward?"},
+        {"category": "Behavioral", "question": "Your open-source project has 14 external contributors. Tell me about a disagreement with a contributor over design direction and how you resolved it."},
+        {"category": "Role-Fit", "question": "This role runs everything on Kubernetes, which isn't on your resume. How have you approached closing an infrastructure gap like this before, and what's your 90-day plan to get production-safe with it?"},
+        {"category": "Role-Fit", "question": "CloudCore fronts internal APIs with a GraphQL gateway. Given your REST-first background, how would you evaluate what belongs in the graph versus staying REST, and where would you expect friction?"}
+      ],
+      "profile_draft": {
+        "headline": {
+          "concise": "Senior Backend Engineer | Python · FastAPI · PostgreSQL | APIs at 2.3M req/day",
+          "detailed": "Senior Backend Engineer building high-throughput fintech APIs (2.3M req/day, p95 <180ms) | Python, FastAPI, PostgreSQL, AWS | Open-source author of LedgerLite (1.2k★)"
+        },
+        "about": {
+          "concise": "I build backend systems that stay fast under real load. At Finlytics I own a REST platform doing 2.3M requests a day, cut database latency 45%, and led the move to event-driven reconciliation that turned a 6-hour batch into a 40-minute pipeline. I care about API contracts, boring reliability, and shipping.",
+          "detailed": "I'm a backend engineer who likes owning services end to end — schema design, API contracts, deployment, and the 2am pager that keeps you honest. At Finlytics I run a REST API platform serving 2.3M requests a day at a p95 under 180ms, and I led three engineers through migrating payment reconciliation to event-driven Celery workers, cutting settlement from 6 hours to 40 minutes. Before that, at CredWise, I built KYC microservices handling 50,000 daily checks and automated the release pipeline down 70%. Outside work I maintain LedgerLite, an open-source double-entry bookkeeping API with 1,200 GitHub stars and 14 contributors. I'm happiest where correctness, throughput, and clean interfaces all matter at once."
+        },
+        "project_descriptions": [
+          {
+            "title": "LedgerLite",
+            "concise": "Open-source double-entry bookkeeping API (FastAPI + PostgreSQL) — 1,200★, 14 contributors, used in production by 3 startups.",
+            "detailed": "Designed and maintain LedgerLite, an open-source double-entry bookkeeping API in FastAPI and PostgreSQL. Grew it to 1,200 GitHub stars and 14 external contributors by keeping the core transactional model strict while making integration trivial; three startups now run it in production for their internal ledgers."
+          },
+          {
+            "title": "RateWatch",
+            "concise": "Serverless currency alerting on AWS Lambda + SQS delivering 30,000 alerts/month at near-zero cost.",
+            "detailed": "Built RateWatch, a serverless currency alert service on AWS Lambda, SQS, and PostgreSQL that delivers 30,000 alerts per month. Designed the fan-out so a full pricing-feed refresh costs cents, and alert delivery stays under 5 seconds end to end."
+          }
+        ]
+      }
+    },
+    {
+      "key": "rohan",
+      "resume_filename": "rohan_mehta_resume.docx",
+      "resume_text": "ROHAN MEHTA\nPune, India | rohan.mehta@example.com | +91 91234 56780 | linkedin.com/in/rohanmehta\n\nSUMMARY\nData analyst with 3 years of experience turning messy product and marketing data into decisions. Strong in SQL and Python with a track record of building dashboards leadership actually uses, and experiments that changed roadmap priorities.\n\nSKILLS\nSQL, Python, Tableau, Excel, Pandas, A/B Testing, Statistics, Google Analytics\n\nEXPERIENCE\nData Analyst — ShopSprint (2022 – Present)\n- Built a Tableau retention dashboard used weekly by 40+ stakeholders, replacing 6 ad-hoc spreadsheet reports\n- Designed A/B tests for checkout flow changes that lifted conversion by 12% across 2M monthly sessions\n- Automated the marketing attribution pipeline in Python, reducing weekly reporting effort from 10 hours to 45 minutes\n\nJunior Analyst — BrightMetrics (2021 – 2022)\n- Analyzed churn cohorts in SQL across 800,000 customer records to identify 3 high-risk segments\n- Created executive KPI reports in Excel and Tableau delivered to leadership every Monday\n\nPROJECTS\nCartLens — Personal project analyzing 1.2M e-commerce events in Pandas to model cart-abandonment drivers; findings written up in a blog post with 15,000 reads\n\nEDUCATION\nB.Sc. Statistics, Fergusson College (2018 – 2021)\n\nCERTIFICATIONS\nGoogle Data Analytics Professional Certificate",
+      "parsed": {
+        "name": "Rohan Mehta",
+        "contact": {
+          "email": "rohan.mehta@example.com",
+          "phone": "+91 91234 56780",
+          "location": "Pune, India",
+          "linkedin": "linkedin.com/in/rohanmehta"
+        },
+        "skills": ["SQL", "Python", "Tableau", "Excel", "Pandas", "A/B Testing", "Statistics", "Google Analytics"],
+        "experience": [
+          {
+            "title": "Data Analyst",
+            "company": "ShopSprint",
+            "start_date": "2022",
+            "end_date": "Present",
+            "bullets": [
+              "Built a Tableau retention dashboard used weekly by 40+ stakeholders, replacing 6 ad-hoc spreadsheet reports",
+              "Designed A/B tests for checkout flow changes that lifted conversion by 12% across 2M monthly sessions",
+              "Automated the marketing attribution pipeline in Python, reducing weekly reporting effort from 10 hours to 45 minutes"
+            ]
+          },
+          {
+            "title": "Junior Analyst",
+            "company": "BrightMetrics",
+            "start_date": "2021",
+            "end_date": "2022",
+            "bullets": [
+              "Analyzed churn cohorts in SQL across 800,000 customer records to identify 3 high-risk segments",
+              "Created executive KPI reports in Excel and Tableau delivered to leadership every Monday"
+            ]
+          }
+        ],
+        "education": [
+          {"degree": "B.Sc. Statistics", "institution": "Fergusson College", "year": "2018 – 2021"}
+        ],
+        "certifications": ["Google Data Analytics Professional Certificate"],
+        "projects": [
+          {
+            "name": "CartLens",
+            "description": "Personal project analyzing 1.2M e-commerce events in Pandas to model cart-abandonment drivers; findings written up in a blog post with 15,000 reads",
+            "technologies": ["Python", "Pandas"]
+          }
+        ]
+      },
+      "human_score": {
+        "value": 76,
+        "breakdown": [
+          "Every experience bullet is quantified — strong impact framing",
+          "Summary states outcomes but could name the business domain earlier",
+          "Only one project listed; a second would strengthen the portfolio story",
+          "Excel and Google Analytics read as junior signals next to A/B testing depth"
+        ]
+      },
+      "job_description": {
+        "title": "Product Data Analyst",
+        "company": "Metricly",
+        "raw_text": "Product Data Analyst — Metricly (Hybrid, Pune)\n\nMetricly is a product analytics platform. We're hiring a Product Data Analyst to own experiment analysis and self-serve reporting for our customers' product teams.\n\nWhat you will do:\n- Model product event data with dbt into clean, documented marts\n- Build and maintain Power BI dashboards for customer-facing reporting\n- Design and analyze A/B tests with our data science team\n\nRequirements:\n- Advanced SQL for analytics across large event datasets\n- Python for data wrangling and statistical analysis\n- Tableau experience for internal dashboarding\n- Power BI experience for customer-facing report packs\n- dbt experience for analytics engineering and data modeling",
+        "requirements": ["SQL", "Python", "Tableau", "Power BI", "dbt"]
+      },
+      "expected_gap": {
+        "matched": ["SQL", "Python", "Tableau"],
+        "missing": ["Power BI", "dbt"],
+        "match_percentage": 60
+      },
+      "interview_questions": [
+        {"category": "Technical", "question": "You analyzed churn across 800,000 records in SQL. Walk me through how you'd structure a cohort retention query, and how you'd keep it fast as the events table grows 10x."},
+        {"category": "Technical", "question": "Your checkout A/B tests lifted conversion 12% across 2M sessions. How did you determine sample size and guard against peeking, and when would you have called the test inconclusive?"},
+        {"category": "Technical", "question": "In CartLens you modeled cart-abandonment drivers on 1.2M events. Which features mattered most, and how did you validate you weren't just modeling seasonality?"},
+        {"category": "Behavioral", "question": "Your Tableau dashboard replaced 6 ad-hoc reports used by 40+ stakeholders. Tell me about a stakeholder who resisted giving up their spreadsheet — how did you win them over?"},
+        {"category": "Behavioral", "question": "Describe a time your analysis contradicted what a product leader wanted to hear. What did you do, and what happened?"},
+        {"category": "Behavioral", "question": "You automated attribution reporting from 10 hours to 45 minutes. What broke in the first month of automation, and how did you make it trustworthy?"},
+        {"category": "Role-Fit", "question": "This role models data with dbt, which you haven't used. Given your Python pipeline experience, how would you approach learning dbt's testing and documentation workflow in your first month?"},
+        {"category": "Role-Fit", "question": "Metricly's customer reporting runs on Power BI rather than Tableau. What do you expect to transfer directly, and what would you deliberately relearn?"}
+      ],
+      "profile_draft": {
+        "headline": {
+          "concise": "Data Analyst | SQL · Python · Tableau | A/B tests that moved conversion 12%",
+          "detailed": "Product Data Analyst turning 2M-session experiments into roadmap decisions | SQL, Python, Tableau | Dashboards used weekly by 40+ stakeholders"
+        },
+        "about": {
+          "concise": "I turn messy product data into decisions teams act on. At ShopSprint my A/B tests lifted checkout conversion 12%, my retention dashboard replaced six spreadsheet reports for 40+ stakeholders, and my Python automation cut weekly reporting from 10 hours to 45 minutes.",
+          "detailed": "I'm a data analyst who measures success by decisions changed, not dashboards shipped. At ShopSprint I design and analyze A/B tests across 2M monthly sessions — including checkout experiments that lifted conversion 12% — and I built the Tableau retention dashboard that 40+ stakeholders now open every week instead of six competing spreadsheets. I automated our marketing attribution pipeline in Python, turning a 10-hour weekly chore into a 45-minute run. My foundation is a statistics degree and a habit of writing up what I learn: my CartLens analysis of 1.2M e-commerce events has 15,000 reads. I'm looking to go deeper on analytics engineering and experiment tooling."
+        },
+        "project_descriptions": [
+          {
+            "title": "CartLens",
+            "concise": "Modeled cart-abandonment drivers on 1.2M e-commerce events in Pandas; write-up read 15,000 times.",
+            "detailed": "Built CartLens, a personal research project modeling cart-abandonment drivers across 1.2M e-commerce events with Pandas. Identified three intervention points product teams could act on, and published the methodology in a write-up that has been read 15,000 times."
+          },
+          {
+            "title": "Attribution Pipeline Automation",
+            "concise": "Python pipeline replacing a 10-hour weekly reporting process with a 45-minute automated run.",
+            "detailed": "Designed and shipped the Python automation that replaced ShopSprint's manual marketing attribution reporting. What took an analyst 10 hours every week now runs in 45 minutes with validation checks, freeing a full analyst-day per week for experiment work."
+          }
+        ]
+      }
+    }
+  ]
+}
