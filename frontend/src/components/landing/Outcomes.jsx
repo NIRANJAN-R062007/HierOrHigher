@@ -33,12 +33,13 @@ export default function Outcomes() {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    // Keyed on index so a manual dot click restarts the 6s rotation window.
     const id = setInterval(
       () => setIndex((current) => (current + 1) % OUTCOMES.length),
       6000,
     );
     return () => clearInterval(id);
-  }, []);
+  }, [index]);
 
   const active = OUTCOMES[index];
 
