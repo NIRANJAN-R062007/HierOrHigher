@@ -65,7 +65,11 @@ class FakeRepository:
         return row if row and row["user_id"] == user_id else None
 
     def list_resumes(self, user_id):
-        rows = [r for r in self.resumes.values() if r["user_id"] == user_id]
+        rows = [
+            {**r, "name": r["parsed_json"].get("name", "")}
+            for r in self.resumes.values()
+            if r["user_id"] == user_id
+        ]
         return sorted(rows, key=lambda r: r["created_at"], reverse=True)
 
     def insert_resume(self, row):
