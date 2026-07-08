@@ -55,6 +55,7 @@ def list_resumes(
     return [
         ResumeListItem(
             id=str(row["id"]),
+            name=row.get("name") or "",
             content_hash=row["content_hash"],
             ats_score=row["ats_score"],
             human_score=row["human_score"],
