@@ -101,3 +101,6 @@ def test_stored_resume_is_retrievable_after_reload(client, dataset):
     listing = client.get("/api/resumes")
     assert listing.status_code == 200
     assert [r["id"] for r in listing.json()] == [resume_id]
+    assert listing.json()[0]["name"] == "Asha Venkat", (
+        "the listing must carry the parsed name for the resume switcher"
+    )
