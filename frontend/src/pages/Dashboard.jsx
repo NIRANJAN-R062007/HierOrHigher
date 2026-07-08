@@ -4,6 +4,7 @@ import ErrorState from "../components/dashboard/ErrorState";
 import GapSection from "../components/dashboard/GapSection";
 import InterviewSection from "../components/dashboard/InterviewSection";
 import ProfileSection from "../components/dashboard/ProfileSection";
+import ResumeSwitcher from "../components/dashboard/ResumeSwitcher";
 import ScoreSection from "../components/dashboard/ScoreSection";
 import SectionNav from "../components/dashboard/SectionNav";
 import { SkeletonCard } from "../components/dashboard/Skeleton";
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [booting, setBooting] = useState(true);
   const [bootError, setBootError] = useState(null);
 
+  const [resumes, setResumes] = useState([]);
   const [resume, setResume] = useState(null);
   const [gap, setGap] = useState(null);
   const [interviewSet, setInterviewSet] = useState(null);
@@ -34,15 +36,16 @@ export default function Dashboard() {
     setGap(overview.gap_report);
     setInterviewSet(overview.interview_set);
     setProfileDraft(overview.profile_draft);
-    if (overview.job_description_text) setJdText(overview.job_description_text);
+    setJdText(overview.job_description_text || "");
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const resumes = await api.listResumes();
-        if (resumes.length > 0) {
-          applyOverview(await api.getOverview(resumes[0].id));
+        const listing = await api.listResumes();
+        setResumes(listing);
+        if (listing.length > 0) {
+          applyOverview(await api.getOverview(listing[0].id));
         }
       } catch (err) {
         setBootError(err.message);
@@ -50,6 +53,11 @@ export default function Dashboard() {
       setBooting(false);
     })();
   }, [applyOverview]);
+
+  const switchResume = useAsyncAction(async (resumeId) => {
+    if (resumeId === resume?.resume_id) return;
+    applyOverview(await api.getOverview(resumeId));
+  });
 
   const upload = useAsyncAction(async (file) => {
     const result = await api.uploadResume(file);
@@ -62,7 +70,9 @@ export default function Dashboard() {
       setGap(null);
       setInterviewSet(null);
       setProfileDraft(null);
+      setJdText("");
     }
+    setResumes(await api.listResumes());
   });
 
   const gapAction = useAsyncAction(async () => {
@@ -122,6 +132,14 @@ export default function Dashboard() {
                 onRetry={() => window.location.reload()}
               />
             )}
+
+            <ResumeSwitcher
+              resumes={resumes}
+              activeId={resume?.resume_id}
+              onSelect={switchResume.run}
+              busy={switchResume.loading}
+            />
+            {switchResume.error && <ErrorState message={switchResume.error} />}
 
             <UploadPanel
               resume={resume}
