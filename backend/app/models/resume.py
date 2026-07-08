@@ -99,6 +99,7 @@ class ResumeResponse(BaseModel):
 
 class ResumeListItem(BaseModel):
     id: str
+    name: str = ""
     content_hash: str
     ats_score: ATSScore
     human_score: HumanScore
