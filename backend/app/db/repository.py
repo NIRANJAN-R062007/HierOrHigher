@@ -51,7 +51,10 @@ class SupabaseRepository:
     def list_resumes(self, user_id: str) -> list[dict]:
         return (
             self.client.table("resumes")
-            .select("id, content_hash, ats_score, human_score, created_at")
+            .select(
+                "id, content_hash, ats_score, human_score, created_at, "
+                "name:parsed_json->>name"
+            )
             .eq("user_id", user_id)
             .order("created_at", desc=True)
             .execute()
