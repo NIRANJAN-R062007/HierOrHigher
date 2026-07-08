@@ -37,10 +37,13 @@ async function request(path, { method = "GET", body, formData } = {}) {
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const detail =
-      typeof data?.detail === "string"
-        ? data.detail
-        : `Request failed (${response.status})`;
+    let detail = `Request failed (${response.status})`;
+    if (typeof data?.detail === "string") {
+      detail = data.detail;
+    } else if (Array.isArray(data?.detail) && data.detail[0]?.msg) {
+      // FastAPI request-validation errors arrive as a list of issues.
+      detail = data.detail[0].msg.replace(/^Value error, /, "");
+    }
     throw new ApiError(detail, response.status);
   }
   return data;
