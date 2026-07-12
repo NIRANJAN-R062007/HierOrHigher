@@ -92,7 +92,7 @@ export default function Outcomes() {
   const active = OUTCOMES[index];
 
   return (
-    <section id="outcomes" className="bg-ink-950 py-24 sm:py-32">
+    <section id="outcomes" className="py-24 sm:py-32">
       <div className="mx-auto max-w-4xl px-5 text-center sm:px-8">
         <Reveal>
           <p className="text-eyebrow font-semibold uppercase text-gold-400">
