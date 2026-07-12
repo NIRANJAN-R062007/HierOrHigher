@@ -52,8 +52,18 @@ export default function ModuleShowcase() {
         <div className="mt-14 grid gap-6 sm:grid-cols-2">
           {MODULES.map((module, index) => (
             <Reveal key={module.title} delay={index * 90}>
-              <article className="group h-full rounded-2xl border border-ink-700/70 bg-ink-800/60 p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-gold-600/50 hover:shadow-lift">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink-700/70 text-gold-400 transition-colors group-hover:bg-gold-500/15">
+              <article className="group relative h-full overflow-hidden rounded-2xl border border-ink-700/70 bg-ink-800/60 p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-gold-600/50 hover:shadow-lift">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-500/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                />
+                <span
+                  aria-hidden="true"
+                  className="absolute right-7 top-7 font-display text-5xl font-semibold text-ink-700/40 transition-colors duration-300 group-hover:text-gold-600/30"
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-ink-700/70 text-gold-400 transition-all duration-300 group-hover:scale-105 group-hover:bg-gold-500/15">
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
