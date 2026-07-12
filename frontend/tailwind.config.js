@@ -77,6 +77,10 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.35" },
         },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-14px)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both",
@@ -84,6 +88,7 @@ export default {
         "page-in": "fade-in 0.35s ease both",
         "glow-pan": "glow-pan 14s ease-in-out infinite",
         "pulse-dot": "pulse-dot 1.2s ease-in-out infinite",
+        float: "float 7s ease-in-out infinite",
       },
     },
   },
