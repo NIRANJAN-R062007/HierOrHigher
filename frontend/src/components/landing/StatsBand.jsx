@@ -50,7 +50,7 @@ export default function StatsBand() {
   return (
     <section
       ref={ref}
-      className="border-y border-ink-800/70 bg-gradient-to-b from-ink-900 to-ink-950 py-16 sm:py-20"
+      className="border-y border-ink-800/70 bg-gradient-to-b from-ink-900 to-transparent py-16 sm:py-20"
     >
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-10 px-5 sm:px-8 lg:grid-cols-4">
         {STATS.map((stat) => (
