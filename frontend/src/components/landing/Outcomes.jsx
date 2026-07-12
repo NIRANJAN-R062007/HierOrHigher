@@ -1,5 +1,53 @@
 import { useEffect, useState } from "react";
+import { useCountUp } from "../../hooks/useCountUp";
 import Reveal from "./Reveal";
+
+/**
+ * The score line for one testimonial: the "after" number counts up and a lift
+ * bar sweeps from the before score to the after score. Remounts per testimonial
+ * (the parent figure is keyed on index), so it re-animates on every rotation.
+ */
+function ScoreDelta({ before, after }) {
+  const [armed, setArmed] = useState(false);
+  const shown = useCountUp(armed ? after : 0, 1400);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <>
+      <div className="flex items-center justify-center gap-5 font-display">
+        <span className="text-4xl font-medium text-paper-200/50 line-through decoration-2">
+          {before}
+        </span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-6 w-6 text-gold-500"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </svg>
+        <span className="text-6xl font-semibold text-gold-400">{shown}</span>
+      </div>
+      <div className="mx-auto mt-8 h-1.5 max-w-sm overflow-hidden rounded-full bg-ink-700/70">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-gold-600 via-gold-400 to-gold-300"
+          style={{
+            width: `${armed ? after : before}%`,
+            transition: "width 1.4s cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
+        />
+      </div>
+    </>
+  );
+}
 
 const OUTCOMES = [
   {
@@ -61,26 +109,7 @@ export default function Outcomes() {
             aria-live="polite"
             className="animate-fade-in rounded-3xl border border-ink-700/70 bg-ink-800/50 px-6 py-12 sm:px-14"
           >
-            <div className="flex items-center justify-center gap-5 font-display">
-              <span className="text-4xl font-medium text-paper-200/50 line-through decoration-2">
-                {active.before}
-              </span>
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-6 w-6 text-gold-500"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14m-6-6 6 6-6 6" />
-              </svg>
-              <span className="text-6xl font-semibold text-gold-400">
-                {active.after}
-              </span>
-            </div>
+            <ScoreDelta before={active.before} after={active.after} />
             <blockquote className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-paper-200/85">
               “{active.quote}”
             </blockquote>
