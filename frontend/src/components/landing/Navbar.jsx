@@ -45,6 +45,12 @@ export default function Navbar() {
           >
             Outcomes
           </a>
+          <Link
+            to="/masterclass"
+            className="hidden text-sm text-paper-200/80 transition-colors hover:text-paper-50 sm:block"
+          >
+            Masterclass
+          </Link>
           {user ? (
             <Link
               to="/dashboard"
