@@ -1,3 +1,4 @@
+import Faq from "../components/landing/Faq";
 import Footer from "../components/landing/Footer";
 import Hero from "../components/landing/Hero";
 import HowItWorks from "../components/landing/HowItWorks";
@@ -17,6 +18,7 @@ export default function Landing() {
         <ModuleShowcase />
         <StatsBand />
         <Outcomes />
+        <Faq />
       </main>
       <Footer />
     </div>
