@@ -65,7 +65,7 @@ export default function Hero() {
         </div>
 
         <div
-          className="hidden animate-fade-up justify-center lg:flex lg:justify-end"
+          className="flex animate-fade-up justify-center lg:justify-end"
           style={{ animationDelay: "480ms" }}
         >
           <HeroScoreCard />
