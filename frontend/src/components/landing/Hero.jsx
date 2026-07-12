@@ -19,7 +19,7 @@ export default function Hero() {
   return (
     <section
       onMouseMove={handleMove}
-      className="relative isolate overflow-hidden bg-ink-950"
+      className="relative isolate overflow-hidden"
     >
       {/* Slow-panning ambient glow in place of hero video. */}
       <div
