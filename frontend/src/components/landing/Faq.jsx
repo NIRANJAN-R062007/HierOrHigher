@@ -29,7 +29,7 @@ export default function Faq() {
   const [open, setOpen] = useState(0);
 
   return (
-    <section id="faq" className="border-t border-ink-800 bg-ink-950 py-24 sm:py-32">
+    <section id="faq" className="border-t border-ink-800 py-24 sm:py-32">
       <div className="mx-auto max-w-3xl px-5 sm:px-8">
         <Reveal>
           <p className="text-eyebrow font-semibold uppercase text-gold-400">
