@@ -50,30 +50,6 @@ body {
   transition: stroke-dashoffset 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Gold shine sweep across display text (masterclass surfaces). */
-.text-gold-shine {
-  background: linear-gradient(
-    110deg,
-    theme("colors.gold.400") 25%,
-    theme("colors.paper.50") 50%,
-    theme("colors.gold.500") 75%
-  );
-  background-size: 250% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: gold-shine 6s linear infinite;
-}
-
-@keyframes gold-shine {
-  from {
-    background-position: 250% center;
-  }
-  to {
-    background-position: -250% center;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
