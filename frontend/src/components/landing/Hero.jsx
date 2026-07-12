@@ -1,14 +1,31 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import HeroScoreCard from "./HeroScoreCard";
 
 /** Cinematic full-bleed hero: layered gold-on-ink gradients, editorial type. */
 export default function Hero() {
+  const glowRef = useRef(null);
+
+  // Drift the ambient glow toward the cursor for a subtle parallax depth.
+  const handleMove = (event) => {
+    const node = glowRef.current;
+    if (!node || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return;
+    const x = (event.clientX / window.innerWidth - 0.5) * 26;
+    const y = (event.clientY / window.innerHeight - 0.5) * 26;
+    node.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  };
+
   return (
-    <section className="relative isolate overflow-hidden bg-ink-950">
+    <section
+      onMouseMove={handleMove}
+      className="relative isolate overflow-hidden bg-ink-950"
+    >
       {/* Slow-panning ambient glow in place of hero video. */}
       <div
+        ref={glowRef}
         aria-hidden="true"
-        className="absolute inset-0 animate-glow-pan opacity-90"
+        className="absolute inset-0 animate-glow-pan opacity-90 transition-transform duration-500 ease-out will-change-transform"
         style={{
           background:
             "radial-gradient(60% 80% at 20% 10%, rgba(201,169,97,0.14), transparent 60%)," +
