@@ -77,6 +77,18 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.35" },
         },
+        "word-rise": {
+          from: { opacity: "0", transform: "translateY(110%)" },
+          to: { opacity: "1", transform: "none" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-16px)" },
+        },
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both",
@@ -84,6 +96,10 @@ export default {
         "page-in": "fade-in 0.35s ease both",
         "glow-pan": "glow-pan 14s ease-in-out infinite",
         "pulse-dot": "pulse-dot 1.2s ease-in-out infinite",
+        "word-rise": "word-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both",
+        float: "float 8s ease-in-out infinite",
+        "float-slow": "float 13s ease-in-out infinite",
+        marquee: "marquee 30s linear infinite",
       },
     },
   },
