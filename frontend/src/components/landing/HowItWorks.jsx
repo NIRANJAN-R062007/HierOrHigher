@@ -23,7 +23,7 @@ export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="bg-gradient-to-b from-ink-950 to-ink-900 py-24 sm:py-32"
+      className="bg-gradient-to-b from-transparent to-ink-900 py-24 sm:py-32"
     >
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <Reveal>
