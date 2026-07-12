@@ -1,0 +1,36 @@
+# Render Blueprint for the HireOrHigher FastAPI backend.
+#
+# The backend keeps per-user rate-limit state in memory (single process by
+# design), so it runs as one persistent web service — not serverless.
+# Deploy: push this file, then in the Render dashboard create a new Blueprint
+# from the repo and fill in every `sync: false` secret below.
+services:
+  - type: web
+    name: hireorhigher-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      # Comma-separated allowed origins — set to your Vercel URL(s), e.g.
+      # https://hireorhigher.vercel.app
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+      # One dedicated Gemini key per module (never shared; see spec 3.1).
+      - key: GEMINI_API_KEY_RESUME_PARSER
+        sync: false
+      - key: GEMINI_API_KEY_GAP_MAPPER
+        sync: false
+      - key: GEMINI_API_KEY_INTERVIEW_GENERATOR
+        sync: false
+      - key: GEMINI_API_KEY_PROFILE_OPTIMIZER
+        sync: false
+      # Supabase — service role key is server-side only.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
