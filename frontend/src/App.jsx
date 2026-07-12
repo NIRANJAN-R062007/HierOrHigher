@@ -4,7 +4,6 @@ import { AuthProvider } from "./context/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import Masterclass from "./pages/Masterclass";
 import Signup from "./pages/Signup";
 
 export default function App() {
@@ -16,7 +15,6 @@ export default function App() {
       <div key={location.pathname} className="animate-page-in">
         <Routes location={location}>
           <Route path="/" element={<Landing />} />
-          <Route path="/masterclass" element={<Masterclass />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route
