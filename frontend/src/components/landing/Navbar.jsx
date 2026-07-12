@@ -34,6 +34,12 @@ export default function Navbar() {
         </Link>
         <div className="flex items-center gap-3 sm:gap-6">
           <a
+            href="/#how-it-works"
+            className="hidden text-sm text-paper-200/80 transition-colors hover:text-paper-50 sm:block"
+          >
+            How it works
+          </a>
+          <a
             href="/#modules"
             className="hidden text-sm text-paper-200/80 transition-colors hover:text-paper-50 sm:block"
           >
