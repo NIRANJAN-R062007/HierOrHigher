@@ -3,7 +3,7 @@ import Reveal from "./Reveal";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-ink-800 bg-ink-950">
+    <footer className="border-t border-ink-800">
       <Reveal>
         <div className="mx-auto max-w-6xl px-5 py-20 text-center sm:px-8">
           <h2 className="mx-auto max-w-2xl font-display text-display-lg font-medium text-paper-50">
