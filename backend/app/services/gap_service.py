@@ -12,6 +12,7 @@ import math
 from app.core.hashing import combined_hash, sha256_text
 from app.core.prompts import load_prompt, wrap_untrusted
 from app.models.gap_report import GapReportResponse, JDRequirements
+from app.services.ml_match import score_resume_jd
 
 # Minimum cosine similarity between a JD requirement and the closest resume
 # skill for the requirement to count as matched. Tuned for
@@ -74,6 +75,9 @@ def _response_from_row(row: dict, resume_id: str, *, cached: bool) -> GapReportR
         missing=row["missing"],
         match_percentage=row["match_percentage"],
         cached=cached,
+        # Rows written before migration 0009 predate the ML integration.
+        source=row.get("source") or "gemini",
+        ml_score=row.get("ml_score"),
     )
 
 
@@ -83,14 +87,22 @@ def build_gap_report(
     jd_text: str,
     repo,
     gemini,
+    scorer=None,
 ) -> GapReportResponse:
     """Produce matched/missing skills + match percentage for one resume/JD pair.
 
     Inputs: authenticated user id, the id of an already-parsed resume, pasted
-    JD text, a repository, and the gap_mapper Gemini client
-    (GEMINI_API_KEY_GAP_MAPPER). The resume parse is reused as stored —
-    module 5.1 is never re-run. Returns the cached report when this exact
-    resume+JD content pair was mapped before.
+    JD text, a repository, the gap_mapper Gemini client
+    (GEMINI_API_KEY_GAP_MAPPER), and the offline ML match scorer (may be
+    None). The resume parse is reused as stored — module 5.1 is never re-run.
+    Returns the cached report when this exact resume+JD content pair was
+    mapped before.
+
+    Hybrid strategy: the ML scorer runs first (free, ~3ms, offline). When it
+    is confident, the report is built entirely from it and NO Gemini call is
+    spent. When it is unsure (``recommend_gemini_review``) or unavailable,
+    the Gemini pipeline runs as before — with the ML result still attached
+    for the UI when the model produced one.
     """
     resume = repo.get_resume(user_id, resume_id)
     if resume is None:
@@ -102,6 +114,34 @@ def build_gap_report(
     cached_row = repo.get_gap_report_by_hash(resume_id, cache_key)
     if cached_row is not None:
         return _response_from_row(cached_row, resume_id, cached=True)
+
+    ml = score_resume_jd(scorer, resume["parsed_json"], jd_text)
+    if ml is not None and not ml["result"]["recommend_gemini_review"]:
+        jd_row = repo.get_jd_by_hash(user_id, jd_hash) or repo.insert_job_description(
+            {
+                "user_id": user_id,
+                "raw_text": jd_text,
+                "content_hash": jd_hash,
+                # Canonical skills found in the JD — the offline analog of
+                # Gemini's requirement extraction, so later modules that read
+                # this row (e.g. interviews) still see concrete requirements.
+                "parsed_requirements": ml["jd_skills"],
+            }
+        )
+        row = repo.insert_gap_report(
+            {
+                "resume_id": resume_id,
+                "jd_id": jd_row["id"],
+                "content_hash": cache_key,
+                "matched": ml["matched_skills"],
+                "missing": ml["missing_skills"],
+                # The model's calibrated 0-100 score, not a naive skill ratio.
+                "match_percentage": round(ml["result"]["match_score"]),
+                "ml_score": ml["result"],
+                "source": "ml",
+            }
+        )
+        return _response_from_row(row, resume_id, cached=False)
 
     jd_row = repo.get_jd_by_hash(user_id, jd_hash)
     if jd_row is None:
@@ -133,6 +173,8 @@ def build_gap_report(
             "matched": matched,
             "missing": missing,
             "match_percentage": match_percentage,
+            "ml_score": ml["result"] if ml else None,
+            "source": "gemini",
         }
     )
     return _response_from_row(row, resume_id, cached=False)
