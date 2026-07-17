@@ -20,6 +20,10 @@ frontend/dist/
 frontend/.vite/
 npm-debug.log*
 
+# ML pipeline outputs — regenerate with the 3 commands in the README
+ml/data/
+ml/artifacts/
+
 # OS / editor
 .DS_Store
 .idea/
