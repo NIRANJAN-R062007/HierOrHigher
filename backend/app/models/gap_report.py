@@ -20,7 +20,12 @@ class GapReportRequest(BaseModel):
 
 
 class GapReportResponse(BaseModel):
-    """POST /api/gap-reports response — the module 5.2 contract."""
+    """POST /api/gap-reports response — the module 5.2 contract.
+
+    ``source`` says which engine produced matched/missing: ``ml`` (confident
+    offline scorer, zero Gemini quota) or ``gemini`` (embedding pipeline).
+    ``ml_score`` carries the full /ml/score contract whenever the model ran.
+    """
 
     gap_report_id: str
     resume_id: str
@@ -29,3 +34,5 @@ class GapReportResponse(BaseModel):
     missing: list[str]
     match_percentage: int = Field(ge=0, le=100)
     cached: bool = False
+    source: str = "gemini"
+    ml_score: dict | None = None
