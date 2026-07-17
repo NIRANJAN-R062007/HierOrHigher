@@ -78,6 +78,17 @@ def get_profile_optimizer_gemini() -> GeminiClient:
     return GeminiClient("profile_optimizer")
 
 
+def get_ml_scorer():
+    """The offline match scorer loaded at startup (or None if unavailable).
+
+    Shares the exact instance behind POST /ml/score so the gap mapper and
+    the raw endpoint can never disagree. Uses no Gemini key.
+    """
+    from app.api.routes import ml_score
+
+    return ml_score._scorer
+
+
 @lru_cache
 def _upload_limiter() -> SlidingWindowRateLimiter:
     settings = get_settings()
