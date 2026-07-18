@@ -118,4 +118,15 @@ EDUCATION_KEYWORDS: list[tuple[str, int]] = [
 
 # -- resume sections the completeness feature looks for --------------------
 
-EXPECTED_SECTIONS: list[str] = ["summary", "skills", "experience", "education", "projects"]
+# Real resumes name the same five sections many ways; the completeness
+# feature accepts any synonym (all lowercase, matched case-insensitively).
+SECTION_SYNONYMS: dict[str, list[str]] = {
+    "summary": ["summary", "profile", "about me", "objective"],
+    "skills": ["skills", "core competencies", "skill set", "technologies"],
+    "experience": ["experience", "work experience", "professional experience",
+                   "employment history", "work history"],
+    "education": ["education", "academic background", "academics", "qualifications"],
+    "projects": ["projects", "personal projects", "selected projects", "key projects"],
+}
+
+EXPECTED_SECTIONS: list[str] = list(SECTION_SYNONYMS)
