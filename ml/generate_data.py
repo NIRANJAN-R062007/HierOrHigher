@@ -1,6 +1,6 @@
 """Stage 1 — synthetic resume/JD pair generator.
 
-Produces 5,000 labelled pairs across 6 domains with realistic noise (skill
+Produces 10,000 labelled pairs across 6 domains with realistic noise (skill
 typos, aliases, dropped sections, inconsistent date formats).
 
 ANTI-LEAKAGE: the scoring rubric below (`_RUBRIC_WEIGHTS`, `_rubric_score`,
@@ -333,7 +333,7 @@ def _make_resume(jd: dict, setup: dict) -> tuple[str, dict]:
     return "\n".join(parts), latents
 
 
-def generate(n: int = 5000) -> pd.DataFrame:
+def generate(n: int = 10000) -> pd.DataFrame:
     rows = []
     tiers = rng.choices(["strong", "moderate", "weak"], weights=[30, 40, 30], k=n)
     for i, tier in enumerate(tiers):
@@ -353,7 +353,7 @@ def generate(n: int = 5000) -> pd.DataFrame:
 
 def main() -> None:
     print("=== Stage 1: synthetic dataset generation ===")
-    df = generate(5000)
+    df = generate(10000)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     df.to_csv(DATASET_PATH, index=False)
 
