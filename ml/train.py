@@ -1,7 +1,7 @@
 """Stage 2 — train, compare, tune, and bundle the match scorer.
 
-Reads the raw-text dataset (never the generator's rubric), recomputes the six
-contract features, compares Ridge / RandomForest / XGBoost / a stacking
+Reads the raw-text dataset (never the generator's rubric), recomputes the
+nine contract features, compares Ridge / RandomForest / XGBoost / a stacking
 ensemble with 5-fold CV, tunes the best tree model with RandomizedSearchCV,
 lets the stack challenge the tuned tree on validation, and saves ONE joblib
 bundle (model + fitted FeatureExtractor) so preprocessing can never drift
@@ -48,13 +48,15 @@ def build_features(df: pd.DataFrame, fe: FeatureExtractor, name: str) -> np.ndar
 
 
 def _feature_code_stamp() -> str:
-    """Hash of the feature-extraction source files, so editing features.py
-    or skills.py invalidates the cache (dataset mtime alone would not)."""
+    """Hash of the feature-extraction source files, so editing features.py,
+    skills.py, or the FEATURE_NAMES contract in common.py invalidates the
+    cache (dataset mtime alone would not)."""
+    import ml.common
     import ml.features
     import ml.skills
 
     digest = hashlib.sha256()
-    for module in (ml.features, ml.skills):
+    for module in (ml.common, ml.features, ml.skills):
         digest.update(Path(module.__file__).read_bytes())
     return digest.hexdigest()
 
@@ -84,16 +86,16 @@ def label_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def importance_shares(model, X_val: np.ndarray, y_val: np.ndarray) -> dict[str, float]:
-    """Normalized importance per feature; permutation importance on the
-    validation set when the model (e.g. a stack) has no native attribute."""
-    if hasattr(model, "feature_importances_"):
-        imp = np.asarray(model.feature_importances_, dtype=float)
-    else:
-        result = permutation_importance(
-            model, X_val, y_val, n_repeats=10, random_state=SEED,
-            scoring="neg_mean_absolute_error",
-        )
-        imp = np.clip(result.importances_mean, 0.0, None)
+    """Normalized permutation importance on the validation set, for every
+    model family. Native tree importances (split gain) are not comparable
+    across candidates and overstate whichever feature splits cleanest;
+    permutation measures what the dominance gate cares about — how much the
+    predictions actually rely on each feature."""
+    result = permutation_importance(
+        model, X_val, y_val, n_repeats=10, random_state=SEED,
+        scoring="neg_mean_absolute_error",
+    )
+    imp = np.clip(result.importances_mean, 0.0, None)
     imp = imp / imp.sum()
     return dict(zip(FEATURE_NAMES, imp))
 
