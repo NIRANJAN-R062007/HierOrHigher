@@ -98,20 +98,24 @@ def importance_shares(model, X_val: np.ndarray, y_val: np.ndarray) -> dict[str, 
     return dict(zip(FEATURE_NAMES, imp))
 
 
-def make_stack() -> StackingRegressor:
+def make_stack(xgb_params: dict | None = None) -> StackingRegressor:
     """Ridge + RandomForest + XGBoost blended by a Ridge meta-learner on
-    out-of-fold predictions."""
+    out-of-fold predictions. ``xgb_params`` swaps the fixed-budget XGBoost
+    member for the RandomizedSearchCV winner."""
+    xgb_kwargs = dict(xgb_params) if xgb_params else dict(
+        n_estimators=500, learning_rate=0.05, max_depth=5, subsample=0.9,
+        colsample_bytree=0.9,
+    )
+    xgb_kwargs.update(random_state=SEED, n_jobs=-1, tree_method="hist")
     return StackingRegressor(
         estimators=[
             ("ridge", make_pipeline(StandardScaler(), Ridge(alpha=1.0))),
-            # min_samples_leaf bounds tree size so the pickled stack stays
-            # well under the 50MB artifact gate; it also regularizes.
-            ("forest", RandomForestRegressor(n_estimators=300, min_samples_leaf=4,
+            # Fractional min_samples_leaf keeps tree size — and the pickled
+            # artifact, gate < 50MB — bounded as the dataset grows; it also
+            # regularizes.
+            ("forest", RandomForestRegressor(n_estimators=300, min_samples_leaf=0.0005,
                                              random_state=SEED, n_jobs=-1)),
-            ("xgb", XGBRegressor(
-                n_estimators=500, learning_rate=0.05, max_depth=5, subsample=0.9,
-                colsample_bytree=0.9, random_state=SEED, n_jobs=-1, tree_method="hist",
-            )),
+            ("xgb", XGBRegressor(**xgb_kwargs)),
         ],
         final_estimator=Ridge(alpha=1.0),
         cv=5,
@@ -183,9 +187,9 @@ def main() -> None:
     if best_tree == "XGBoost":
         base = XGBRegressor(random_state=SEED, n_jobs=1, tree_method="hist")
         grid = {
-            "n_estimators": [300, 500, 800, 1200],
-            "learning_rate": [0.02, 0.03, 0.05, 0.08],
-            "max_depth": [3, 4, 5, 6, 8],
+            "n_estimators": [300, 500, 800, 1200, 2000],
+            "learning_rate": [0.01, 0.02, 0.03, 0.05, 0.08],
+            "max_depth": [2, 3, 4, 5, 6, 8],
             "subsample": [0.7, 0.8, 0.9, 1.0],
             "colsample_bytree": [0.6, 0.8, 1.0],
             "min_child_weight": [1, 3, 5, 10],
@@ -200,7 +204,7 @@ def main() -> None:
             "max_features": [None, "sqrt", 0.5, 0.8],
         }
     search = RandomizedSearchCV(
-        base, grid, n_iter=25, cv=5, scoring="neg_mean_absolute_error",
+        base, grid, n_iter=60, cv=5, scoring="neg_mean_absolute_error",
         random_state=SEED, n_jobs=-1, verbose=1,
     )
     search.fit(X_train, y_train)
@@ -212,14 +216,20 @@ def main() -> None:
     print(f"Tuned {best_tree} val MAE = {tuned_val_mae:.3f} "
           f"(untuned: {val_maes[best_tree]:.3f})")
 
-    # -- overall winner: best (tuned) tree vs the stacking ensemble --------
+    # -- overall winner: best (tuned) tree vs the stacking ensembles -------
     tree_winner = tuned if tuned_val_mae <= val_maes[best_tree] else \
         (xgb if best_tree == "XGBoost" else forest)
-    tree_mae = min(tuned_val_mae, val_maes[best_tree])
-    if val_maes["Stacking"] < tree_mae:
-        winner_name, winner, winner_mae = "Stacking", stack, val_maes["Stacking"]
-    else:
-        winner_name, winner, winner_mae = best_tree, tree_winner, tree_mae
+    contenders = [
+        (best_tree, tree_winner, min(tuned_val_mae, val_maes[best_tree])),
+        ("Stacking", stack, val_maes["Stacking"]),
+    ]
+    if best_tree == "XGBoost":
+        tuned_stack = make_stack(search.best_params_)
+        tuned_stack.fit(X_train, y_train)
+        tuned_stack_mae = mean_absolute_error(y_val, tuned_stack.predict(X_val))
+        print(f"Stacking with the tuned XGBoost member: val MAE = {tuned_stack_mae:.3f}")
+        contenders.append(("Stacking(tuned-xgb)", tuned_stack, tuned_stack_mae))
+    winner_name, winner, winner_mae = min(contenders, key=lambda c: c[2])
     print(f"\nOverall winner on validation: {winner_name} (val MAE = {winner_mae:.3f})")
 
     # -- refit the winner on train+val (test stays untouched) --------------
