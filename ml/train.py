@@ -1,20 +1,24 @@
 """Stage 2 — train, compare, tune, and bundle the match scorer.
 
 Reads the raw-text dataset (never the generator's rubric), recomputes the six
-contract features, compares Ridge / RandomForest / XGBoost with 5-fold CV,
-tunes the best tree model with RandomizedSearchCV, and saves ONE joblib
+contract features, compares Ridge / RandomForest / XGBoost / a stacking
+ensemble with 5-fold CV, tunes the best tree model with RandomizedSearchCV,
+lets the stack challenge the tuned tree on validation, and saves ONE joblib
 bundle (model + fitted FeatureExtractor) so preprocessing can never drift
 from inference.
 
 Run:  python -m ml.train
 """
 
+import hashlib
 import time
+from pathlib import Path
 
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, StackingRegressor
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import Ridge
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score
 from sklearn.model_selection import KFold, RandomizedSearchCV, cross_val_score
@@ -42,17 +46,31 @@ def build_features(df: pd.DataFrame, fe: FeatureExtractor, name: str) -> np.ndar
     return fe.matrix(list(zip(df["resume_text"], df["jd_text"])), log_every=500)
 
 
+def _feature_code_stamp() -> str:
+    """Hash of the feature-extraction source files, so editing features.py
+    or skills.py invalidates the cache (dataset mtime alone would not)."""
+    import ml.features
+    import ml.skills
+
+    digest = hashlib.sha256()
+    for module in (ml.features, ml.skills):
+        digest.update(Path(module.__file__).read_bytes())
+    return digest.hexdigest()
+
+
 def load_or_extract(splits: dict[str, pd.DataFrame], fe: FeatureExtractor):
-    """Cache extracted features keyed by the dataset's mtime, so an
-    interrupted run resumes without redoing ~4 minutes of extraction."""
+    """Cache extracted features keyed by the dataset's mtime AND the feature
+    code hash, so an interrupted run resumes without redoing ~4 minutes of
+    extraction but a feature change never reuses stale matrices."""
     stamp = DATASET_PATH.stat().st_mtime
+    code = _feature_code_stamp()
     if FEATURES_CACHE.exists():
         cached = np.load(FEATURES_CACHE)
-        if cached["stamp"] == stamp:
+        if cached["stamp"] == stamp and "code" in cached and cached["code"] == code:
             print("Using cached feature matrices.")
             return {k: cached[k] for k in splits}
     mats = {k: build_features(v, fe, k) for k, v in splits.items()}
-    np.savez(FEATURES_CACHE, stamp=stamp, **mats)
+    np.savez(FEATURES_CACHE, stamp=stamp, code=code, **mats)
     print(f"Feature matrices cached at {FEATURES_CACHE.name}")
     return mats
 
@@ -64,10 +82,37 @@ def label_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     )
 
 
-def importance_shares(model) -> dict[str, float]:
-    imp = np.asarray(model.feature_importances_, dtype=float)
+def importance_shares(model, X_val: np.ndarray, y_val: np.ndarray) -> dict[str, float]:
+    """Normalized importance per feature; permutation importance on the
+    validation set when the model (e.g. a stack) has no native attribute."""
+    if hasattr(model, "feature_importances_"):
+        imp = np.asarray(model.feature_importances_, dtype=float)
+    else:
+        result = permutation_importance(
+            model, X_val, y_val, n_repeats=10, random_state=SEED,
+            scoring="neg_mean_absolute_error",
+        )
+        imp = np.clip(result.importances_mean, 0.0, None)
     imp = imp / imp.sum()
     return dict(zip(FEATURE_NAMES, imp))
+
+
+def make_stack() -> StackingRegressor:
+    """Ridge + RandomForest + XGBoost blended by a Ridge meta-learner on
+    out-of-fold predictions."""
+    return StackingRegressor(
+        estimators=[
+            ("ridge", make_pipeline(StandardScaler(), Ridge(alpha=1.0))),
+            ("forest", RandomForestRegressor(n_estimators=300, random_state=SEED, n_jobs=-1)),
+            ("xgb", XGBRegressor(
+                n_estimators=500, learning_rate=0.05, max_depth=5, subsample=0.9,
+                colsample_bytree=0.9, random_state=SEED, n_jobs=-1, tree_method="hist",
+            )),
+        ],
+        final_estimator=Ridge(alpha=1.0),
+        cv=5,
+        n_jobs=-1,
+    )
 
 
 def main() -> None:
@@ -96,7 +141,8 @@ def main() -> None:
     print("\n5-fold CV on the training set (MAE, lower is better):")
     cv = KFold(n_splits=5, shuffle=True, random_state=SEED)
     cv_results = {}
-    for name, model in [("Ridge", ridge), ("RandomForest", forest), ("XGBoost", xgb_cv)]:
+    for name, model in [("Ridge", ridge), ("RandomForest", forest),
+                        ("XGBoost", xgb_cv), ("Stacking", make_stack())]:
         scores = -cross_val_score(
             model, X_train, y_train, cv=cv,
             scoring="neg_mean_absolute_error", n_jobs=-1,
@@ -115,9 +161,12 @@ def main() -> None:
     )
     xgb.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=100)
     print(f"  XGBoost early stop at iteration {xgb.best_iteration}")
+    stack = make_stack()
+    stack.fit(X_train, y_train)
 
     val_maes = {}
-    for name, model in [("Ridge", ridge), ("RandomForest", forest), ("XGBoost", xgb)]:
+    for name, model in [("Ridge", ridge), ("RandomForest", forest),
+                        ("XGBoost", xgb), ("Stacking", stack)]:
         val_maes[name] = mean_absolute_error(y_val, model.predict(X_val))
         print(f"  {name:<13} val MAE = {val_maes[name]:.3f}")
 
@@ -158,16 +207,23 @@ def main() -> None:
     tuned_val_mae = mean_absolute_error(y_val, tuned.predict(X_val))
     print(f"Tuned {best_tree} val MAE = {tuned_val_mae:.3f} "
           f"(untuned: {val_maes[best_tree]:.3f})")
-    winner_name = best_tree
-    winner = tuned if tuned_val_mae <= val_maes[best_tree] else \
+
+    # -- overall winner: best (tuned) tree vs the stacking ensemble --------
+    tree_winner = tuned if tuned_val_mae <= val_maes[best_tree] else \
         (xgb if best_tree == "XGBoost" else forest)
+    tree_mae = min(tuned_val_mae, val_maes[best_tree])
+    if val_maes["Stacking"] < tree_mae:
+        winner_name, winner, winner_mae = "Stacking", stack, val_maes["Stacking"]
+    else:
+        winner_name, winner, winner_mae = best_tree, tree_winner, tree_mae
+    print(f"\nOverall winner on validation: {winner_name} (val MAE = {winner_mae:.3f})")
 
     # -- quality gates on the held-out test set ----------------------------
     y_pred = np.clip(winner.predict(X_test), 0, 100)
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
     acc = label_accuracy(y_test, y_pred)
-    shares = importance_shares(winner)
+    shares = importance_shares(winner, X_val, y_val)
     max_share = max(shares.values())
 
     print("\n=== Quality gates (held-out test set) ===")
