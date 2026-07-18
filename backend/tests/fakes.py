@@ -247,6 +247,7 @@ class FakeMatchScorer:
             "breakdown": {name: 0.5 for name in (
                 "skill_overlap", "experience_match", "education_match",
                 "title_similarity", "keyword_density", "section_completeness",
+                "experience_gap", "semantic_similarity", "seniority_alignment",
             )},
             "top_missing_skills": sorted(self._jd_skills - self._resume_skills)[:5],
         }
