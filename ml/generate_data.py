@@ -24,7 +24,7 @@ from ml.common import (
     SEED,
     score_to_label,
 )
-from ml.skills import DOMAIN_SKILLS, SKILL_ALIASES
+from ml.skills import DOMAIN_SKILLS, SECTION_SYNONYMS, SKILL_ALIASES
 
 rng = random.Random(SEED)
 np_rng = np.random.default_rng(SEED)
@@ -89,6 +89,9 @@ COMPANIES = ["CloudCore", "Metricly", "BrightApps", "NovaWorks", "PixelForge",
              "FinEdge", "TorqueLabs", "GrowthHive", "DataSpring", "BlueLedger"]
 SCHOOLS = ["Anna University", "VIT Vellore", "IIT Madras", "NIT Trichy",
            "SRM University", "BITS Pilani", "Delhi University"]
+CITIES = ["Chennai", "Bengaluru", "Hyderabad", "Mumbai", "Pune", "Kochi"]
+HOBBIES = ["cricket", "photography", "travel", "chess", "badminton",
+           "blogging", "cooking", "trekking"]
 
 DEGREE_TEXT = {
     1: ["High School Diploma"],
@@ -140,11 +143,28 @@ def _rubric_score(lat: dict) -> float:
 # -- text noise helpers ----------------------------------------------------
 
 def _typo(word: str) -> str:
-    """Swap two adjacent inner characters, e.g. 'Python' -> 'Pyhton'."""
+    """One realistic typing error: adjacent swap ('Pyhton'), dropped inner
+    character ('Pythn'), or doubled inner character ('Pythhon'). Spaces are
+    never dropped or doubled so multi-word skills keep their word count."""
     if len(word) < 4:
         return word
+    mode = rng.choices(["swap", "drop", "double"], weights=[50, 25, 25])[0]
+    inner = [i for i in range(1, len(word) - 1) if word[i] != " "]
+    if mode == "drop" and len(word) >= 5 and inner:
+        i = rng.choice(inner)
+        return word[:i] + word[i + 1:]
+    if mode == "double" and inner:
+        i = rng.choice(inner)
+        return word[:i + 1] + word[i] + word[i + 1:]
     i = rng.randrange(1, len(word) - 2)
     return word[:i] + word[i + 1] + word[i] + word[i + 2:]
+
+
+def _header(section: str) -> str:
+    """Render a section header the way real resumes do: any synonym,
+    usually SHOUTED, sometimes Title Case."""
+    name = rng.choice(SECTION_SYNONYMS[section])
+    return name.upper() if rng.random() < 0.7 else name.title()
 
 
 def _render_skill(skill: str) -> str:
@@ -163,8 +183,12 @@ def _date_range(end_y: int, end_m: int, months: int, latest: bool) -> str:
     start_m = (start_m - 1) % 12 + 1
     style = rng.choice(["month", "slash", "year"])
     sep = rng.choice([" - ", " – ", " to "])
-    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    month_names = rng.choice([
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        ["January", "February", "March", "April", "May", "June", "July",
+         "August", "September", "October", "November", "December"],
+    ])
     if style == "month":
         start = f"{month_names[start_m - 1]} {start_y}"
         end = "Present" if latest else f"{month_names[end_m - 1]} {end_y}"
@@ -192,15 +216,28 @@ def _make_jd(domain: str, seniority: str) -> dict:
         0: "", 2: "- Bachelor's degree in a relevant field required\n",
         3: "- Master's degree required\n", 4: "- PhD in a relevant field required\n",
     }[req_edu]
+    title_prefix = rng.choice(["Job Title:", "Position:", "Role:"])
+    years_line = rng.choice([
+        f"- {req_years}+ years of relevant experience",
+        f"- At least {req_years} years of experience",
+        f"- {req_years}-{req_years + rng.randint(1, 3)} years of experience",
+        f"- Minimum {req_years} yrs of hands-on experience",
+    ])
+    # Real JDs sometimes write aliases ("K8s", "GCP") instead of canon names.
+    skills_line = ", ".join(
+        rng.choice(_CANON_TO_ALIASES[s]) if rng.random() < 0.15 and s in _CANON_TO_ALIASES
+        else s
+        for s in req_skills
+    )
     text = (
-        f"Job Title: {title}\n"
+        f"{title_prefix} {title}\n"
         f"Company: {company}\n\n"
         f"About the Role:\n"
         f"We are hiring a {title} to strengthen our {domain} team at {company}. "
         f"You will ship high-impact work with modern tools.\n\n"
         f"Requirements:\n"
-        f"- {req_years}+ years of relevant experience\n"
-        f"- Proficiency in: {', '.join(req_skills)}\n"
+        f"{years_line}\n"
+        f"- Proficiency in: {skills_line}\n"
         f"{edu_line}\n"
         f"Responsibilities:\n"
         f"- Own and deliver {domain} initiatives using {req_skills[0]} and {req_skills[1]}\n"
@@ -280,16 +317,21 @@ def _make_resume(jd: dict, setup: dict) -> tuple[str, dict]:
         keep["education"] = False
     section_frac = (sum(keep.values()) + 1) / 6  # +1: contact header always present
 
-    parts = [name, f"{email} | +91 9{rng.randint(100000000, 999999999)}", ""]
+    contact = f"{email} | +91 9{rng.randint(100000000, 999999999)}"
+    if rng.random() < 0.40:
+        contact += f" | {rng.choice(CITIES)}"
+    if rng.random() < 0.30:
+        contact += f" | linkedin.com/in/{name.replace(' ', '').lower()}"
+    parts = [name, contact, ""]
     if keep["summary"]:
-        parts += ["SUMMARY",
+        parts += [_header("summary"),
                   f"{title} with {max(0.0, setup['years']):.0f} years of experience "
                   f"specializing in {skills[0]} and {skills[min(1, len(skills)-1)]}.", ""]
     if keep["skills"]:
-        parts += ["SKILLS", ", ".join(_render_skill(s) for s in skills), ""]
+        parts += [_header("skills"), ", ".join(_render_skill(s) for s in skills), ""]
 
     # Experience: split total years across 1-3 roles, newest first.
-    parts += ["EXPERIENCE"]
+    parts += [_header("experience")]
     total_months = max(4, int(setup["years"] * 12))
     n_roles = min(rng.randint(1, 3), max(1, total_months // 12))
     cuts = sorted(rng.sample(range(1, total_months), n_roles - 1)) if n_roles > 1 else []
@@ -306,7 +348,12 @@ def _make_resume(jd: dict, setup: dict) -> tuple[str, dict]:
         else:
             parts.append(f"{role_title}, {company} ({dates})")
         used = rng.sample(skills, min(2, len(skills)))
-        parts.append(f"- Delivered {domain} work using {used[0]} and {used[-1]}")
+        parts.append(rng.choice([
+            f"- Delivered {domain} work using {used[0]} and {used[-1]}",
+            f"- Improved delivery speed {rng.randint(10, 60)}% by adopting {used[0]}",
+            f"- Shipped {rng.randint(2, 12)} releases built on {used[0]} and {used[-1]}",
+            f"- Reduced costs {rng.randint(5, 40)}% with {used[-1]} automation",
+        ]))
         gap = months + rng.randint(0, 2)
         end_m -= gap
         end_y += (end_m - 1) // 12
@@ -315,12 +362,21 @@ def _make_resume(jd: dict, setup: dict) -> tuple[str, dict]:
 
     if keep["education"] and setup["edu"] > 0:
         degree = rng.choice(DEGREE_TEXT[setup["edu"]]).format(field=FIELDS[domain])
-        parts += ["EDUCATION",
+        parts += [_header("education"),
                   f"{degree}, {rng.choice(SCHOOLS)}, {rng.randint(2005, 2024)}", ""]
     if keep["projects"]:
         used = rng.sample(skills, min(2, len(skills)))
-        parts += ["PROJECTS",
+        parts += [_header("projects"),
                   f"Built a {domain} project with {used[0]} and {used[-1]}.", ""]
+
+    # Decoration real resumes carry; drawn from the candidate's own skills
+    # (certs) or skill-free hobby words, so latent attributes stay untouched.
+    if rng.random() < 0.30:
+        parts += ["CERTIFICATIONS" if rng.random() < 0.7 else "Certifications",
+                  f"Certified {rng.choice(skills)} Practitioner, {rng.randint(2018, 2025)}", ""]
+    if rng.random() < 0.25:
+        parts += ["INTERESTS" if rng.random() < 0.7 else "Interests",
+                  ", ".join(rng.sample(HOBBIES, rng.randint(2, 4))), ""]
 
     latents = {
         "skill_cov": len(covered) / len(jd["req_skills"]),
