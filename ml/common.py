@@ -28,6 +28,9 @@ FEATURE_NAMES = [
     "title_similarity",
     "keyword_density",
     "section_completeness",
+    "experience_gap",
+    "semantic_similarity",
+    "seniority_alignment",
 ]
 
 STRONG_THRESHOLD = 70.0
