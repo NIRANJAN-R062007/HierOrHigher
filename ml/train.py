@@ -17,6 +17,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.ensemble import RandomForestRegressor, StackingRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import Ridge
@@ -103,7 +104,10 @@ def make_stack() -> StackingRegressor:
     return StackingRegressor(
         estimators=[
             ("ridge", make_pipeline(StandardScaler(), Ridge(alpha=1.0))),
-            ("forest", RandomForestRegressor(n_estimators=300, random_state=SEED, n_jobs=-1)),
+            # min_samples_leaf bounds tree size so the pickled stack stays
+            # well under the 50MB artifact gate; it also regularizes.
+            ("forest", RandomForestRegressor(n_estimators=300, min_samples_leaf=4,
+                                             random_state=SEED, n_jobs=-1)),
             ("xgb", XGBRegressor(
                 n_estimators=500, learning_rate=0.05, max_depth=5, subsample=0.9,
                 colsample_bytree=0.9, random_state=SEED, n_jobs=-1, tree_method="hist",
@@ -218,6 +222,16 @@ def main() -> None:
         winner_name, winner, winner_mae = best_tree, tree_winner, tree_mae
     print(f"\nOverall winner on validation: {winner_name} (val MAE = {winner_mae:.3f})")
 
+    # -- refit the winner on train+val (test stays untouched) --------------
+    # Validation has done its job (model selection); the shipped model
+    # should learn from that 10% too.
+    winner = clone(winner)
+    if isinstance(winner, XGBRegressor) and winner.get_params().get("early_stopping_rounds"):
+        # No eval set left to stop on: freeze the budget early stopping chose.
+        winner.set_params(early_stopping_rounds=None,
+                          n_estimators=max(1, xgb.best_iteration + 1))
+    winner.fit(np.vstack([X_train, X_val]), np.concatenate([y_train, y_val]))
+
     # -- quality gates on the held-out test set ----------------------------
     y_pred = np.clip(winner.predict(X_test), 0, 100)
     r2 = r2_score(y_test, y_pred)
@@ -253,6 +267,9 @@ def main() -> None:
     size_mb = ARTIFACT_PATH.stat().st_size / 1e6
     print(f"\nSaved artifact: {ARTIFACT_PATH} ({size_mb:.2f} MB, gate < 50MB "
           f"{'PASS' if size_mb < 50 else 'FAIL'})")
+    if size_mb >= 50:
+        ARTIFACT_PATH.unlink()  # never leave an over-budget artifact behind
+        raise SystemExit("Artifact size gate FAILED — artifact removed.")
     print(f"Total training time: {time.time() - t0:.1f}s")
 
 
