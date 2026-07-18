@@ -3,7 +3,7 @@
 The only module the backend imports. Loads the joblib bundle (model + fitted
 FeatureExtractor) once and returns the exact output contract:
 
-    match_score, label, confidence, breakdown{6 features}, top_missing_skills
+    match_score, label, confidence, breakdown{9 features}, top_missing_skills
 """
 
 import numpy as np
