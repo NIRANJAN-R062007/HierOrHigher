@@ -36,6 +36,22 @@ _RANGE_RE = re.compile(
     re.IGNORECASE,
 )
 _YEARS_PHRASE_RE = re.compile(r"(\d{1,2})\s*\+?\s*years?", re.IGNORECASE)
+_TOKEN_RE = re.compile(r"[^\s,;:|/()\[\]]+")
+
+
+def _is_adjacent_swap(a: str, b: str) -> bool:
+    """True when b equals a except for one adjacent-character transposition
+    ('python' vs 'pyhton') — the classic typing error, and the only kind of
+    typo where same-length matching stays unambiguous."""
+    if len(a) != len(b) or a == b:
+        return False
+    diff = [i for i, (x, y) in enumerate(zip(a, b)) if x != y]
+    return (
+        len(diff) == 2
+        and diff[1] == diff[0] + 1
+        and a[diff[0]] == b[diff[1]]
+        and a[diff[1]] == b[diff[0]]
+    )
 
 
 def _parse_point(token: str) -> tuple[int, int] | None:
@@ -68,6 +84,7 @@ class FeatureExtractor:
         self._sbert = None
         self._emb_cache: dict[str, np.ndarray] = {}
         self._skill_patterns = None
+        self._fuzzy_index = None
         self._analyzer = None
         self._vocab = None
 
@@ -78,6 +95,7 @@ class FeatureExtractor:
         state["_sbert"] = None
         state["_emb_cache"] = {}
         state["_skill_patterns"] = None
+        state["_fuzzy_index"] = None
         state["_analyzer"] = None
         state["_vocab"] = None
         return state
@@ -96,6 +114,23 @@ class FeatureExtractor:
             ]
         return self._skill_patterns
 
+    @property
+    def fuzzy_index(self) -> dict[tuple[int, int], list[tuple[str, str]]]:
+        """(word_count, char_len) -> [(canonical_name, lowercased term)] for
+        every skill/alias of >= 4 chars; same-length bucketing keeps the
+        typo scan cheap and precise."""
+        if getattr(self, "_fuzzy_index", None) is None:
+            pairs = [(s, s) for s in ALL_SKILLS]
+            pairs += [(canon, alias) for alias, canon in SKILL_ALIASES.items()]
+            index: dict[tuple[int, int], list[tuple[str, str]]] = {}
+            for canon, term in pairs:
+                low = " ".join(term.lower().split())
+                if len(low) < 4:
+                    continue
+                index.setdefault((len(low.split()), len(low)), []).append((canon, low))
+            self._fuzzy_index = index
+        return self._fuzzy_index
+
     def _embed(self, text: str) -> np.ndarray:
         if self._sbert is None:
             from sentence_transformers import SentenceTransformer
@@ -111,7 +146,24 @@ class FeatureExtractor:
     # -- individual signals ------------------------------------------------
 
     def extract_skills(self, text: str) -> set[str]:
-        return {canon for canon, pat in self.skill_patterns if pat.search(text)}
+        exact = {canon for canon, pat in self.skill_patterns if pat.search(text)}
+        return exact | self._fuzzy_skills(text, exact)
+
+    def _fuzzy_skills(self, text: str, already_found: set[str]) -> set[str]:
+        """Recover skill mentions the exact regexes miss because of a typo
+        ('Pyhton', 'MachineL earning'): slide a window of the right word
+        count over the text and accept same-length adjacent transpositions."""
+        tokens = [t.lower().rstrip(".") for t in _TOKEN_RE.findall(text)]
+        found: set[str] = set()
+        for word_count in {wc for wc, _ in self.fuzzy_index}:
+            for i in range(len(tokens) - word_count + 1):
+                window = " ".join(tokens[i:i + word_count])
+                for canon, term in self.fuzzy_index.get((word_count, len(window)), []):
+                    if canon in already_found or canon in found:
+                        continue
+                    if _is_adjacent_swap(term, window):
+                        found.add(canon)
+        return found
 
     @staticmethod
     def extract_education_level(text: str) -> int:
