@@ -235,7 +235,9 @@ class FeatureExtractor:
 
     def keyword_density(self, resume_text: str, jd_text: str) -> float:
         """TF-IDF-weighted fraction of JD keywords present in the resume
-        (normalization by JD length comes from the TF-IDF weighting)."""
+        (normalization by JD length comes from the TF-IDF weighting).
+        A JD keyword also counts when the resume spells it with one
+        adjacent-character typo, mirroring extract_skills."""
         if self.tfidf is None:
             raise RuntimeError("FeatureExtractor.fit() must run before use")
         if self._analyzer is None:  # cached: building these per call is ~100ms
@@ -245,11 +247,19 @@ class FeatureExtractor:
         if jd_vec.nnz == 0:
             return 0.0
         resume_tokens = set(self._analyzer(resume_text))
+        tokens_by_len: dict[int, list[str]] = {}
+        for tok in resume_tokens:
+            tokens_by_len.setdefault(len(tok), []).append(tok)
         weights = jd_vec.tocoo()
-        present = sum(
-            w for j, w in zip(weights.col, weights.data)
-            if self._vocab[j] in resume_tokens
-        )
+        present = 0.0
+        for j, w in zip(weights.col, weights.data):
+            term = self._vocab[j]
+            if term in resume_tokens or (
+                len(term) >= 4
+                and any(_is_adjacent_swap(term, tok)
+                        for tok in tokens_by_len.get(len(term), ()))
+            ):
+                present += w
         return float(present / weights.data.sum())
 
     def extract(self, resume_text: str, jd_text: str) -> dict:
