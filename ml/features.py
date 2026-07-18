@@ -1,6 +1,6 @@
 """Feature extraction from *raw* resume + job-description text.
 
-The six features in the output contract are recomputed here from text only —
+The nine features in the output contract are recomputed here from text only —
 this module knows nothing about how the training data was generated (the
 anti-leakage rule): no import of ml.generate_data anywhere below.
 """
@@ -43,6 +43,23 @@ _YEARS_PHRASE_RE = re.compile(
 _TOKEN_RE = re.compile(r"[^\s,;:|/()\[\]]+")
 _JD_TITLE_PREFIXES = ("job title:", "position:", "role:")
 _EXPERIENCE_HEADERS = tuple(SECTION_SYNONYMS["experience"])
+
+# Ordinal seniority ladder read off job titles (0=entry .. 3=lead). Checked
+# in order so "Lead"/"Head" outranks a stray "Senior" in the same title.
+_SENIORITY_TIERS: list[tuple[tuple[str, ...], int]] = [
+    (("staff", "principal", "lead", "head of", "director", "chief", "vp"), 3),
+    (("senior", "sr.", "sr "), 2),
+    (("intern", "trainee", "junior", "jr.", "jr ", "associate", "coordinator"), 0),
+]
+_SEMANTIC_CHARS = 1200  # embed only the head of each text: cheap and salient
+
+
+def _seniority_level(title: str) -> int:
+    low = title.lower()
+    for keywords, level in _SENIORITY_TIERS:
+        if any(k in low for k in keywords):
+            return level
+    return 1  # unmarked titles read as mid-level
 
 
 def _is_adjacent_swap(a: str, b: str) -> bool:
@@ -259,7 +276,7 @@ class FeatureExtractor:
                 return re.split(r"[|,]", stripped)[0].strip()
         return ""
 
-    # -- the six contract features ----------------------------------------
+    # -- the nine contract features ---------------------------------------
 
     def fit(self, jd_texts: list[str]) -> "FeatureExtractor":
         """Fit the TF-IDF vocabulary on *training* JDs only (no leakage)."""
@@ -338,6 +355,26 @@ class FeatureExtractor:
             for name in EXPECTED_SECTIONS
         ) / len(EXPECTED_SECTIONS)
 
+        # Raw signed gap in years, scaled to [-1, 1]: keeps the resolution
+        # the sigmoid squashes away at the extremes.
+        experience_gap = float(np.clip(delta, -10.0, 10.0)) / 10.0
+
+        # Whole-text semantic similarity: catches domain relatedness the
+        # title comparison misses (career switchers, odd titles).
+        sem = float(np.dot(
+            self._embed(resume_text[:_SEMANTIC_CHARS]),
+            self._embed(jd_text[:_SEMANTIC_CHARS]),
+        ))
+        semantic_similarity = max(0.0, min(1.0, sem))
+
+        # How far apart the two titles sit on the seniority ladder.
+        if cand_title and jd_title:
+            seniority_alignment = 1.0 - abs(
+                _seniority_level(cand_title) - _seniority_level(jd_title)
+            ) / 3.0
+        else:
+            seniority_alignment = 0.5  # unknown: neither aligned nor opposed
+
         features = {
             "skill_overlap": round(skill_overlap, 4),
             "experience_match": round(experience_match, 4),
@@ -345,6 +382,9 @@ class FeatureExtractor:
             "title_similarity": round(title_similarity, 4),
             "keyword_density": round(self.keyword_density(resume_text, jd_text), 4),
             "section_completeness": round(section_completeness, 4),
+            "experience_gap": round(experience_gap, 4),
+            "semantic_similarity": round(semantic_similarity, 4),
+            "seniority_alignment": round(seniority_alignment, 4),
         }
         missing = sorted(jd_skills - resume_skills)
         return {"features": features, "top_missing_skills": missing[:5]}
