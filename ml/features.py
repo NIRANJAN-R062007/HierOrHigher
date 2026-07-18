@@ -19,6 +19,7 @@ from ml.skills import (
     ALL_SKILLS,
     EDUCATION_KEYWORDS,
     EXPECTED_SECTIONS,
+    SECTION_SYNONYMS,
     SKILL_ALIASES,
 )
 
@@ -35,8 +36,13 @@ _RANGE_RE = re.compile(
     r"((?:[A-Za-z]{3,9}\.?\s+)?\d{4}|\d{1,2}/\d{4}|present|current)",
     re.IGNORECASE,
 )
-_YEARS_PHRASE_RE = re.compile(r"(\d{1,2})\s*\+?\s*years?", re.IGNORECASE)
+# "8 years", "8+ yrs", and the lower bound of ranges like "4-6 years".
+_YEARS_PHRASE_RE = re.compile(
+    r"(\d{1,2})\s*(?:[-–]\s*\d{1,2}\s*)?\+?\s*(?:years?|yrs?)", re.IGNORECASE
+)
 _TOKEN_RE = re.compile(r"[^\s,;:|/()\[\]]+")
+_JD_TITLE_PREFIXES = ("job title:", "position:", "role:")
+_EXPERIENCE_HEADERS = tuple(SECTION_SYNONYMS["experience"])
 
 
 def _is_adjacent_swap(a: str, b: str) -> bool:
@@ -51,6 +57,26 @@ def _is_adjacent_swap(a: str, b: str) -> bool:
         and diff[1] == diff[0] + 1
         and a[diff[0]] == b[diff[1]]
         and a[diff[1]] == b[diff[0]]
+    )
+
+
+def _is_inner_deletion(term: str, window: str) -> bool:
+    """True when window equals term with one non-edge character removed
+    ('python' vs 'pythn'). Edge characters stay excluded so plurals and
+    prefixes ('spark'/'sparks') never false-positive."""
+    if len(window) != len(term) - 1 or len(term) < 5:
+        return False
+    return any(term[:i] + term[i + 1:] == window for i in range(1, len(term) - 1))
+
+
+def _is_inner_doubling(term: str, window: str) -> bool:
+    """True when window equals term with one non-edge character doubled
+    ('python' vs 'pythhon')."""
+    if len(window) != len(term) + 1 or len(term) < 4:
+        return False
+    return any(
+        term[:i + 1] + term[i] + term[i + 1:] == window
+        for i in range(1, len(term) - 1)
     )
 
 
@@ -150,19 +176,29 @@ class FeatureExtractor:
         return exact | self._fuzzy_skills(text, exact)
 
     def _fuzzy_skills(self, text: str, already_found: set[str]) -> set[str]:
-        """Recover skill mentions the exact regexes miss because of a typo
-        ('Pyhton', 'MachineL earning'): slide a window of the right word
-        count over the text and accept same-length adjacent transpositions."""
+        """Recover skill mentions the exact regexes miss because of a typo:
+        an adjacent swap ('Pyhton', 'MachineL earning'), a dropped inner
+        character ('Pythn'), or a doubled inner character ('Pythhon'). Slide
+        a window of the right word count over the text and match against
+        length-bucketed terms."""
         tokens = [t.lower().rstrip(".") for t in _TOKEN_RE.findall(text)]
         found: set[str] = set()
         for word_count in {wc for wc, _ in self.fuzzy_index}:
             for i in range(len(tokens) - word_count + 1):
                 window = " ".join(tokens[i:i + word_count])
-                for canon, term in self.fuzzy_index.get((word_count, len(window)), []):
-                    if canon in already_found or canon in found:
-                        continue
-                    if _is_adjacent_swap(term, window):
-                        found.add(canon)
+                # Bucket to search x typo check: swap keeps length, a window
+                # missing a char is one shorter than its term, and so on.
+                probes = (
+                    (len(window), _is_adjacent_swap),
+                    (len(window) + 1, _is_inner_deletion),
+                    (len(window) - 1, _is_inner_doubling),
+                )
+                for term_len, check in probes:
+                    for canon, term in self.fuzzy_index.get((word_count, term_len), []):
+                        if canon in already_found or canon in found:
+                            continue
+                        if check(term, window):
+                            found.add(canon)
         return found
 
     @staticmethod
@@ -197,7 +233,7 @@ class FeatureExtractor:
     @staticmethod
     def extract_jd_title(jd_text: str) -> str:
         for line in jd_text.splitlines():
-            if line.lower().startswith("job title:"):
+            if line.lower().startswith(_JD_TITLE_PREFIXES):
                 return line.split(":", 1)[1].strip()
         for line in jd_text.splitlines():  # fallback: first non-empty line
             if line.strip():
@@ -214,7 +250,7 @@ class FeatureExtractor:
             stripped = line.strip()
             if not stripped:
                 continue
-            if stripped.lower().startswith("experience"):
+            if stripped.lower().startswith(_EXPERIENCE_HEADERS):
                 in_exp = True
                 continue
             if in_exp:
@@ -256,8 +292,14 @@ class FeatureExtractor:
             term = self._vocab[j]
             if term in resume_tokens or (
                 len(term) >= 4
-                and any(_is_adjacent_swap(term, tok)
+                and (
+                    any(_is_adjacent_swap(term, tok)
                         for tok in tokens_by_len.get(len(term), ()))
+                    or any(_is_inner_deletion(term, tok)
+                           for tok in tokens_by_len.get(len(term) - 1, ()))
+                    or any(_is_inner_doubling(term, tok)
+                           for tok in tokens_by_len.get(len(term) + 1, ()))
+                )
             ):
                 present += w
         return float(present / weights.data.sum())
@@ -291,7 +333,10 @@ class FeatureExtractor:
             title_similarity = 0.0
 
         low = resume_text.lower()
-        section_completeness = sum(s in low for s in EXPECTED_SECTIONS) / len(EXPECTED_SECTIONS)
+        section_completeness = sum(
+            any(syn in low for syn in SECTION_SYNONYMS[name])
+            for name in EXPECTED_SECTIONS
+        ) / len(EXPECTED_SECTIONS)
 
         features = {
             "skill_overlap": round(skill_overlap, 4),
