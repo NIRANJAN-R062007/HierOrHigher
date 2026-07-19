@@ -10,12 +10,16 @@ services:
     runtime: python
     rootDir: backend
     plan: free
-    buildCommand: pip install -r requirements.txt
+    # Render clones the whole repo (rootDir only scopes commands), so the
+    # repo-root ml/ package and its committed artifact are on disk; the ML
+    # requirements make the offline match scorer importable at startup.
+    buildCommand: pip install -r requirements.txt -r ../ml/requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.9"
+        # Matches the version the committed ML artifact was trained with.
+        value: "3.13.4"
       # Comma-separated allowed origins — set to your Vercel URL(s), e.g.
       # https://hireorhigher.vercel.app
       - key: BACKEND_CORS_ORIGINS
