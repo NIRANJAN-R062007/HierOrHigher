@@ -20,9 +20,9 @@ frontend/dist/
 frontend/.vite/
 npm-debug.log*
 
-# ML pipeline outputs — regenerate with the 3 commands in the README
+# ML pipeline outputs. The dataset is regenerable (README) and stays out of
+# git; the trained artifact (~0.25MB) ships so deploys serve it directly.
 ml/data/
-ml/artifacts/
 
 # OS / editor
 .DS_Store
