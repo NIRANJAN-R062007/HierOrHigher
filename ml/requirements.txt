@@ -3,6 +3,16 @@
 # depends on the ML stack (spec: isolated package, CPU-only).
 # Pinned exactly: the committed match_scorer.joblib artifact must unpickle
 # against the same library versions it was trained with.
+#
+# --extra-index-url pulls the CPU-only torch build (+cpu local version) on
+# Linux. Without it, pip resolves plain PyPI torch on Linux, which bundles
+# the full CUDA runtime (nvidia-cublas-cu12 etc.) — several GB that blow
+# past Render's free-tier build limits. The +cpu wheel has no CUDA deps.
+# macOS has no +cpu variant (no CUDA split to begin with), so dev machines
+# still resolve the plain wheel via the marker below.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu ; sys_platform == "linux"
+torch==2.13.0 ; sys_platform != "linux"
 numpy==2.5.1
 pandas==3.0.3
 scikit-learn==1.9.0
