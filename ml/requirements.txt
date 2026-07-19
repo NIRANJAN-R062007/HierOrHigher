@@ -1,9 +1,11 @@
 # ML-only dependencies for the Resume-to-Job Match Scorer.
 # Kept separate from backend/requirements.txt so the core API never
 # depends on the ML stack (spec: isolated package, CPU-only).
-numpy>=1.26
-pandas>=2.2
-scikit-learn>=1.5
-xgboost>=2.1
-sentence-transformers>=3.0
-joblib>=1.4
+# Pinned exactly: the committed match_scorer.joblib artifact must unpickle
+# against the same library versions it was trained with.
+numpy==2.5.1
+pandas==3.0.3
+scikit-learn==1.9.0
+xgboost==3.3.0
+sentence-transformers==5.6.0
+joblib==1.5.3
