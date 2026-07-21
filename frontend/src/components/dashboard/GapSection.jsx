@@ -10,17 +10,17 @@ const GAP_STEPS = [
 function ChipList({ title, items, tone }) {
   const toneClasses =
     tone === "matched"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : "border-red-200 bg-red-50 text-red-800";
+      ? "border-emerald-500/30 bg-emerald-900/40 text-emerald-300"
+      : "border-red-500/30 bg-red-900/40 text-red-300";
   return (
     <div>
-      <h4 className="text-sm font-semibold text-ink-700">
+      <h4 className="text-sm font-semibold text-paper-200">
         {title}{" "}
-        <span className="font-normal text-ink-400">({items.length})</span>
+        <span className="font-normal text-paper-200/50">({items.length})</span>
       </h4>
       <ul className="mt-3 flex flex-wrap gap-2">
         {items.length === 0 && (
-          <li className="text-sm text-ink-400">None</li>
+          <li className="text-sm text-paper-200/60">None</li>
         )}
         {items.map((skill) => (
           <li
@@ -50,16 +50,16 @@ export default function GapSection({
   const canRun = ready && jdText.trim().length >= 40 && !running;
 
   return (
-    <div className="rounded-2xl border border-paper-200 bg-white p-6 shadow-card">
+    <div className="rounded-2xl border border-ink-700 bg-ink-800 p-6 shadow-card">
       {!ready && (
-        <p className="text-sm text-ink-400">
+        <p className="text-sm text-paper-200/60">
           Upload a resume first — the gap mapper compares the job description
           against your parsed resume.
         </p>
       )}
       {ready && (
         <>
-          <label htmlFor="jd-text" className="block text-sm font-semibold text-ink-700">
+          <label htmlFor="jd-text" className="block text-sm font-semibold text-paper-200">
             Paste the job description
           </label>
           <textarea
@@ -68,19 +68,19 @@ export default function GapSection({
             value={jdText}
             onChange={(event) => onJdTextChange(event.target.value)}
             placeholder="Paste the full posting — requirements, responsibilities, all of it. More text means a sharper map."
-            className="mt-2 w-full rounded-xl border border-paper-300 bg-paper-50 px-4 py-3 text-sm text-ink-900 placeholder-ink-400 transition-colors focus:border-gold-500"
+            className="mt-2 w-full rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm text-paper-50 placeholder-paper-200/40 transition-colors focus:border-gold-500"
           />
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
               type="button"
               disabled={!canRun}
               onClick={onRun}
-              className="rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-paper-50 transition-all hover:bg-ink-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-full bg-gold-500 px-6 py-2.5 text-sm font-semibold text-ink-950 transition-all hover:bg-gold-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {gap ? "Re-map against this JD" : "Map my gaps"}
             </button>
             {jdText.trim().length > 0 && jdText.trim().length < 40 && (
-              <p className="text-xs text-ink-400">
+              <p className="text-xs text-paper-200/60">
                 Paste at least a few sentences of the posting.
               </p>
             )}
@@ -98,12 +98,12 @@ export default function GapSection({
           )}
 
           {gap && !running && (
-            <div className="mt-6 border-t border-paper-200 pt-6">
+            <div className="mt-6 border-t border-ink-700 pt-6">
               <div className="flex items-end justify-between">
-                <p className="text-sm font-semibold text-ink-700">Match strength</p>
-                <p className="font-display text-3xl font-semibold text-ink-900">
+                <p className="text-sm font-semibold text-paper-200">Match strength</p>
+                <p className="font-display text-3xl font-semibold text-paper-50">
                   {gap.match_percentage}
-                  <span className="text-base font-medium text-ink-400">%</span>
+                  <span className="text-base font-medium text-paper-200/60">%</span>
                 </p>
               </div>
               <div
@@ -112,7 +112,7 @@ export default function GapSection({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label="Job match percentage"
-                className="mt-2 h-2.5 overflow-hidden rounded-full bg-paper-200"
+                className="mt-2 h-2.5 overflow-hidden rounded-full bg-ink-700"
               >
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-400 transition-all duration-1000 ease-out"
@@ -124,7 +124,7 @@ export default function GapSection({
                 <ChipList title="Missing for this role" items={gap.missing} tone="missing" />
               </div>
               {gap.cached && (
-                <p role="status" className="mt-4 text-xs text-ink-400">
+                <p role="status" className="mt-4 text-xs text-paper-200/60">
                   Served from cache — this exact resume + JD pair was mapped before.
                 </p>
               )}
