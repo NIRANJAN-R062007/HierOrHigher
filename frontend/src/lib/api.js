@@ -72,4 +72,19 @@ export const api = {
       method: "POST",
       body: { resume_id: resumeId },
     }),
+
+  // History (read-only): list a resume's past runs per module, then fetch one
+  // in full when the user opens it. Lists are lightweight; details carry the
+  // same shape the create endpoints return.
+  listGapReports: (resumeId) => request(`/gap-reports?resume_id=${resumeId}`),
+  getGapReport: (id, resumeId) =>
+    request(`/gap-reports/${id}?resume_id=${resumeId}`),
+  listInterviewSets: (resumeId) =>
+    request(`/interview-sets?resume_id=${resumeId}`),
+  getInterviewSet: (id, resumeId) =>
+    request(`/interview-sets/${id}?resume_id=${resumeId}`),
+  listProfileDrafts: (resumeId) =>
+    request(`/profile-drafts?resume_id=${resumeId}`),
+  getProfileDraft: (id, resumeId) =>
+    request(`/profile-drafts/${id}?resume_id=${resumeId}`),
 };
