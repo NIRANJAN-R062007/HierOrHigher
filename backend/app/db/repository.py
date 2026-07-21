@@ -118,6 +118,27 @@ class SupabaseRepository:
             .order("created_at", desc=True)
         )
 
+    def list_gap_reports(self, resume_id: str) -> list[dict]:
+        """Every past gap report for a resume, newest first — lightweight
+        columns only (the history list never needs the full skill arrays)."""
+        return (
+            self.client.table("gap_reports")
+            .select("id, jd_id, match_percentage, created_at")
+            .eq("resume_id", resume_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        )
+
+    def get_gap_report(self, resume_id: str, gap_report_id: str) -> dict | None:
+        """One past gap report in full, scoped to its owning resume."""
+        return self._one(
+            self.client.table("gap_reports")
+            .select("*")
+            .eq("resume_id", resume_id)
+            .eq("id", gap_report_id)
+        )
+
     def insert_gap_report(self, row: dict) -> dict:
         return self.client.table("gap_reports").insert(row).execute().data[0]
 
@@ -141,6 +162,27 @@ class SupabaseRepository:
             .order("created_at", desc=True)
         )
 
+    def list_interview_sets(self, resume_id: str) -> list[dict]:
+        """Every past interview set for a resume, newest first — lightweight
+        columns only (the full question list is fetched on demand)."""
+        return (
+            self.client.table("interview_sets")
+            .select("id, jd_id, created_at")
+            .eq("resume_id", resume_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        )
+
+    def get_interview_set(self, resume_id: str, interview_set_id: str) -> dict | None:
+        """One past interview set in full, scoped to its owning resume."""
+        return self._one(
+            self.client.table("interview_sets")
+            .select("*")
+            .eq("resume_id", resume_id)
+            .eq("id", interview_set_id)
+        )
+
     def insert_interview_set(self, row: dict) -> dict:
         return self.client.table("interview_sets").insert(row).execute().data[0]
 
@@ -162,6 +204,28 @@ class SupabaseRepository:
             .select("*")
             .eq("resume_id", resume_id)
             .order("created_at", desc=True)
+        )
+
+    def list_profile_drafts(self, resume_id: str) -> list[dict]:
+        """Every past profile draft for a resume, newest first — lightweight
+        columns only. Note: this module caches by the resume's content hash
+        alone (no JD input), so in practice a resume has a single draft row."""
+        return (
+            self.client.table("profile_drafts")
+            .select("id, created_at")
+            .eq("resume_id", resume_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        )
+
+    def get_profile_draft(self, resume_id: str, profile_draft_id: str) -> dict | None:
+        """One past profile draft in full, scoped to its owning resume."""
+        return self._one(
+            self.client.table("profile_drafts")
+            .select("*")
+            .eq("resume_id", resume_id)
+            .eq("id", profile_draft_id)
         )
 
     def insert_profile_draft(self, row: dict) -> dict:
