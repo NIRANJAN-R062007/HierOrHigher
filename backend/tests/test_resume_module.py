@@ -75,6 +75,20 @@ def test_rejects_oversized_upload(client):
     assert "too large" in response.json()["detail"]
 
 
+def test_unreadable_file_asks_for_reupload(client, fake_gemini):
+    # A valid DOCX (passes content sniffing) that carries almost no extractable
+    # text — the scanned/image-only case. Text extraction fails before Gemini,
+    # so it must surface as a 422 and never spend the resume-parser key.
+    payload = build_docx("Hi")
+    response = client.post(
+        "/api/resumes",
+        files={"file": ("resume.docx", payload, DOCX_CT)},
+    )
+    assert response.status_code == 422
+    assert "couldn't read any text" in response.json()["detail"]
+    assert fake_gemini.calls["ResumeAnalysis"] == 0
+
+
 def test_garbled_parse_asks_for_reupload(client, dataset, fake_gemini):
     fake_gemini.overrides["ResumeAnalysis"] = ResumeAnalysis(
         parsed=ParsedResume(),  # zero structured fields extracted
