@@ -4,18 +4,17 @@
 # Pinned exactly: the committed match_scorer.joblib artifact must unpickle
 # against the same library versions it was trained with.
 #
-# --extra-index-url pulls the CPU-only torch build (+cpu local version) on
-# Linux. Without it, pip resolves plain PyPI torch on Linux, which bundles
-# the full CUDA runtime (nvidia-cublas-cu12 etc.) — several GB that blow
-# past Render's free-tier build limits. The +cpu wheel has no CUDA deps.
-# macOS has no +cpu variant (no CUDA split to begin with), so dev machines
-# still resolve the plain wheel via the marker below.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.13.0+cpu ; sys_platform == "linux"
-torch==2.13.0 ; sys_platform != "linux"
+# Embeddings run through onnxruntime against the committed ONNX export of
+# all-MiniLM-L6-v2 (ml/artifacts/onnx/, produced by ml/export_onnx.py) with a
+# lightweight `tokenizers` tokenizer. This replaces torch + sentence-transformers,
+# which resident-loaded ~500MB+ and downloaded the model live from HuggingFace on
+# first request — enough to OOM-kill Render's 512MB free tier mid-request.
+# torch/transformers are needed only to regenerate the artifact (see export_onnx.py),
+# never at inference, so they are deliberately absent here.
 numpy==2.5.1
 pandas==3.0.3
 scikit-learn==1.9.0
 xgboost==3.3.0
-sentence-transformers==5.6.0
+onnxruntime==1.27.0
+tokenizers==0.22.2
 joblib==1.5.3
