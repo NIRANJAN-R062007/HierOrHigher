@@ -102,18 +102,18 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-paper-50">
-      <header className="border-b border-paper-200">
+    <div className="min-h-screen bg-ink-950">
+      <header className="border-b border-ink-800">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="font-display text-lg font-semibold text-ink-900">
-            Hire<span className="text-gold-600">Or</span>Higher
+          <Link to="/" className="font-display text-lg font-semibold text-paper-50">
+            Hire<span className="text-gold-400">Or</span>Higher
           </Link>
           <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-ink-500 sm:block">{user?.email}</span>
+            <span className="hidden text-sm text-paper-200/70 sm:block">{user?.email}</span>
             <button
               type="button"
               onClick={signOut}
-              className="rounded-full border border-paper-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:border-ink-400 active:scale-95"
+              className="rounded-full border border-ink-700 px-4 py-1.5 text-sm font-medium text-paper-200 transition-colors hover:border-ink-500 active:scale-95"
             >
               Sign out
             </button>
@@ -162,20 +162,20 @@ export default function Dashboard() {
               />
 
               <section id="resume-score" aria-labelledby="resume-score-h" className="scroll-mt-20">
-                <h2 id="resume-score-h" className="font-display text-2xl font-semibold text-ink-900">
+                <h2 id="resume-score-h" className="font-display text-2xl font-semibold text-paper-50">
                   1 · Resume score
                 </h2>
-                <p className="mb-4 mt-1 text-sm text-ink-500">
+                <p className="mb-4 mt-1 text-sm text-paper-200/70">
                   How screening software and humans each read your resume.
                 </p>
                 <ScoreSection resume={resume} />
               </section>
 
               <section id="gap-map" aria-labelledby="gap-map-h" className="scroll-mt-20">
-                <h2 id="gap-map-h" className="font-display text-2xl font-semibold text-ink-900">
+                <h2 id="gap-map-h" className="font-display text-2xl font-semibold text-paper-50">
                   2 · Gap map
                 </h2>
-                <p className="mb-4 mt-1 text-sm text-ink-500">
+                <p className="mb-4 mt-1 text-sm text-paper-200/70">
                   What the target job wants vs. what your resume already proves.
                 </p>
                 <GapSection
@@ -190,10 +190,10 @@ export default function Dashboard() {
               </section>
 
               <section id="interview" aria-labelledby="interview-h" className="scroll-mt-20">
-                <h2 id="interview-h" className="font-display text-2xl font-semibold text-ink-900">
+                <h2 id="interview-h" className="font-display text-2xl font-semibold text-paper-50">
                   3 · Mock interview
                 </h2>
-                <p className="mb-4 mt-1 text-sm text-ink-500">
+                <p className="mb-4 mt-1 text-sm text-paper-200/70">
                   Questions built from your resume, the role, and your gaps.
                 </p>
                 <InterviewSection
@@ -206,10 +206,10 @@ export default function Dashboard() {
               </section>
 
               <section id="profile" aria-labelledby="profile-h" className="scroll-mt-20">
-                <h2 id="profile-h" className="font-display text-2xl font-semibold text-ink-900">
+                <h2 id="profile-h" className="font-display text-2xl font-semibold text-paper-50">
                   4 · Profile drafts
                 </h2>
-                <p className="mb-4 mt-1 text-sm text-ink-500">
+                <p className="mb-4 mt-1 text-sm text-paper-200/70">
                   Your achievements, rewritten for LinkedIn — in two tones.
                 </p>
                 <ProfileSection
