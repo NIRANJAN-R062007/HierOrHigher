@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ErrorState from "../components/dashboard/ErrorState";
 import GapSection from "../components/dashboard/GapSection";
+import HistoryModal from "../components/dashboard/HistoryModal";
 import InterviewSection from "../components/dashboard/InterviewSection";
 import ProfileSection from "../components/dashboard/ProfileSection";
 import ResumeSwitcher from "../components/dashboard/ResumeSwitcher";
 import ScoreSection from "../components/dashboard/ScoreSection";
-import SectionNav from "../components/dashboard/SectionNav";
+import Sidebar from "../components/dashboard/Sidebar";
 import { SkeletonCard } from "../components/dashboard/Skeleton";
 import UploadPanel from "../components/dashboard/UploadPanel";
 import { useAuth } from "../context/AuthContext";
@@ -14,14 +15,16 @@ import { useAsyncAction } from "../hooks/useAsyncAction";
 import { api } from "../lib/api";
 
 /**
- * The working dashboard: light, functional, fast to read — all four module
- * results for the active resume as connected sections with a sticky in-page
- * nav. Persisted results load on boot, so nothing re-processes on reload.
+ * The working dashboard: a sidebar stepper down the four module sections plus
+ * a History panel, with all results for the active resume as connected
+ * sections in the main column. Persisted results load on boot, so nothing
+ * re-processes on reload.
  */
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const [booting, setBooting] = useState(true);
   const [bootError, setBootError] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [resumes, setResumes] = useState([]);
   const [resume, setResume] = useState(null);
@@ -99,121 +102,138 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-paper-50 px-5 pb-24 sm:px-8">
-      <header className="mx-auto flex h-16 max-w-5xl items-center justify-between">
-        <Link to="/" className="font-display text-lg font-semibold text-ink-900">
-          Hire<span className="text-gold-600">Or</span>Higher
-        </Link>
-        <div className="flex items-center gap-4">
-          <span className="hidden text-sm text-ink-500 sm:block">{user?.email}</span>
-          <button
-            type="button"
-            onClick={signOut}
-            className="rounded-full border border-paper-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:border-ink-400 active:scale-95"
-          >
-            Sign out
-          </button>
+    <div className="min-h-screen bg-paper-50">
+      <header className="border-b border-paper-200">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+          <Link to="/" className="font-display text-lg font-semibold text-ink-900">
+            Hire<span className="text-gold-600">Or</span>Higher
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="hidden text-sm text-ink-500 sm:block">{user?.email}</span>
+            <button
+              type="button"
+              onClick={signOut}
+              className="rounded-full border border-paper-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:border-ink-400 active:scale-95"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
-      <SectionNav sections={sections} />
+      <div className="mx-auto flex max-w-6xl flex-col px-5 pb-24 sm:px-8 lg:flex-row lg:gap-10">
+        <Sidebar
+          sections={sections}
+          onOpenHistory={() => resume && setHistoryOpen(true)}
+        />
 
-      <main className="mx-auto mt-8 max-w-5xl space-y-12">
-        {booting ? (
-          <div className="space-y-6" aria-label="Loading your results">
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
-        ) : (
-          <>
-            {bootError && (
-              <ErrorState
-                message={bootError}
-                onRetry={() => window.location.reload()}
+        <main className="min-w-0 flex-1 space-y-12 pt-8">
+          {booting ? (
+            <div className="space-y-6" aria-label="Loading your results">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          ) : (
+            <>
+              {bootError && (
+                <ErrorState
+                  message={bootError}
+                  onRetry={() => window.location.reload()}
+                />
+              )}
+
+              <ResumeSwitcher
+                resumes={resumes}
+                activeId={resume?.resume_id}
+                onSelect={switchResume.run}
+                busy={switchResume.loading}
               />
-            )}
+              {switchResume.error && <ErrorState message={switchResume.error} />}
 
-            <ResumeSwitcher
-              resumes={resumes}
-              activeId={resume?.resume_id}
-              onSelect={switchResume.run}
-              busy={switchResume.loading}
-            />
-            {switchResume.error && <ErrorState message={switchResume.error} />}
-
-            <UploadPanel
-              resume={resume}
-              uploading={upload.loading}
-              error={upload.error}
-              onUpload={(file) => {
-                setLastFile(file);
-                upload.run(file);
-              }}
-              onRetry={lastFile ? () => upload.run(lastFile) : null}
-            />
-
-            <section id="resume-score" aria-labelledby="resume-score-h" className="scroll-mt-20">
-              <h2 id="resume-score-h" className="font-display text-2xl font-semibold text-ink-900">
-                1 · Resume score
-              </h2>
-              <p className="mb-4 mt-1 text-sm text-ink-500">
-                How screening software and humans each read your resume.
-              </p>
-              <ScoreSection resume={resume} />
-            </section>
-
-            <section id="gap-map" aria-labelledby="gap-map-h" className="scroll-mt-20">
-              <h2 id="gap-map-h" className="font-display text-2xl font-semibold text-ink-900">
-                2 · Gap map
-              </h2>
-              <p className="mb-4 mt-1 text-sm text-ink-500">
-                What the target job wants vs. what your resume already proves.
-              </p>
-              <GapSection
+              <UploadPanel
                 resume={resume}
-                gap={gap}
-                jdText={jdText}
-                onJdTextChange={setJdText}
-                running={gapAction.loading}
-                error={gapAction.error}
-                onRun={gapAction.run}
+                uploading={upload.loading}
+                error={upload.error}
+                onUpload={(file) => {
+                  setLastFile(file);
+                  upload.run(file);
+                }}
+                onRetry={lastFile ? () => upload.run(lastFile) : null}
               />
-            </section>
 
-            <section id="interview" aria-labelledby="interview-h" className="scroll-mt-20">
-              <h2 id="interview-h" className="font-display text-2xl font-semibold text-ink-900">
-                3 · Mock interview
-              </h2>
-              <p className="mb-4 mt-1 text-sm text-ink-500">
-                Questions built from your resume, the role, and your gaps.
-              </p>
-              <InterviewSection
-                gap={gap}
-                interviewSet={interviewSet}
-                running={interviewAction.loading}
-                error={interviewAction.error}
-                onGenerate={interviewAction.run}
-              />
-            </section>
+              <section id="resume-score" aria-labelledby="resume-score-h" className="scroll-mt-20">
+                <h2 id="resume-score-h" className="font-display text-2xl font-semibold text-ink-900">
+                  1 · Resume score
+                </h2>
+                <p className="mb-4 mt-1 text-sm text-ink-500">
+                  How screening software and humans each read your resume.
+                </p>
+                <ScoreSection resume={resume} />
+              </section>
 
-            <section id="profile" aria-labelledby="profile-h" className="scroll-mt-20">
-              <h2 id="profile-h" className="font-display text-2xl font-semibold text-ink-900">
-                4 · Profile drafts
-              </h2>
-              <p className="mb-4 mt-1 text-sm text-ink-500">
-                Your achievements, rewritten for LinkedIn — in two tones.
-              </p>
-              <ProfileSection
-                resume={resume}
-                profileDraft={profileDraft}
-                running={profileAction.loading}
-                error={profileAction.error}
-                onGenerate={profileAction.run}
-              />
-            </section>
-          </>
-        )}
-      </main>
+              <section id="gap-map" aria-labelledby="gap-map-h" className="scroll-mt-20">
+                <h2 id="gap-map-h" className="font-display text-2xl font-semibold text-ink-900">
+                  2 · Gap map
+                </h2>
+                <p className="mb-4 mt-1 text-sm text-ink-500">
+                  What the target job wants vs. what your resume already proves.
+                </p>
+                <GapSection
+                  resume={resume}
+                  gap={gap}
+                  jdText={jdText}
+                  onJdTextChange={setJdText}
+                  running={gapAction.loading}
+                  error={gapAction.error}
+                  onRun={gapAction.run}
+                />
+              </section>
+
+              <section id="interview" aria-labelledby="interview-h" className="scroll-mt-20">
+                <h2 id="interview-h" className="font-display text-2xl font-semibold text-ink-900">
+                  3 · Mock interview
+                </h2>
+                <p className="mb-4 mt-1 text-sm text-ink-500">
+                  Questions built from your resume, the role, and your gaps.
+                </p>
+                <InterviewSection
+                  gap={gap}
+                  interviewSet={interviewSet}
+                  running={interviewAction.loading}
+                  error={interviewAction.error}
+                  onGenerate={interviewAction.run}
+                />
+              </section>
+
+              <section id="profile" aria-labelledby="profile-h" className="scroll-mt-20">
+                <h2 id="profile-h" className="font-display text-2xl font-semibold text-ink-900">
+                  4 · Profile drafts
+                </h2>
+                <p className="mb-4 mt-1 text-sm text-ink-500">
+                  Your achievements, rewritten for LinkedIn — in two tones.
+                </p>
+                <ProfileSection
+                  resume={resume}
+                  profileDraft={profileDraft}
+                  running={profileAction.loading}
+                  error={profileAction.error}
+                  onGenerate={profileAction.run}
+                />
+              </section>
+            </>
+          )}
+        </main>
+      </div>
+
+      {historyOpen && resume && (
+        <HistoryModal
+          resumeId={resume.resume_id}
+          resumes={resumes}
+          activeResumeId={resume.resume_id}
+          onSwitchResume={switchResume.run}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
     </div>
   );
 }
