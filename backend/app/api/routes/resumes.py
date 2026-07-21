@@ -9,6 +9,7 @@ from app.api.deps import (
     get_repository,
     get_resume_parser_gemini,
 )
+from app.config import get_settings
 from app.core.file_validation import FileValidationError
 from app.models.gap_report import GapReportResponse
 from app.models.interview import InterviewQuestion, InterviewSetResponse
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/resumes", tags=["resumes"])
 
 
 @router.post("", response_model=ResumeResponse)
-async def upload_resume(
+def upload_resume(
     file: UploadFile = File(...),
     user: AuthenticatedUser = Depends(enforce_upload_rate_limit),
     repo=Depends(get_repository),
@@ -36,8 +37,16 @@ async def upload_resume(
 
     Uses GEMINI_API_KEY_RESUME_PARSER — but only on a cache miss; identical
     re-uploads return the stored result with ``cached: true``.
+
+    Declared sync (``def``, not ``async``) so FastAPI runs the blocking work —
+    text extraction, the Gemini call, and Supabase round-trips — in the
+    threadpool instead of stalling the single-process event loop.
     """
-    data = await file.read()
+    # Read at most one byte past the limit: an oversized upload is capped in
+    # memory here and rejected by ``validate_upload`` rather than being fully
+    # buffered first (the 512MB free tier can't absorb a large payload).
+    max_bytes = get_settings().max_upload_bytes
+    data = file.file.read(max_bytes + 1)
     try:
         return process_resume(user.id, data, file.filename or "resume", repo, gemini)
     except FileValidationError as exc:
