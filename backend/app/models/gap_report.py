@@ -22,9 +22,10 @@ class GapReportRequest(BaseModel):
 class GapReportResponse(BaseModel):
     """POST /api/gap-reports response — the module 5.2 contract.
 
-    ``source`` says which engine produced matched/missing: ``ml`` (confident
-    offline scorer, zero Gemini quota) or ``gemini`` (embedding pipeline).
-    ``ml_score`` carries the full /ml/score contract whenever the model ran.
+    New reports are always ``source="gemini"`` with ``ml_score=None``. Both
+    fields are retained for reports written while the offline ML scorer was
+    still in the loop, where ``source`` could be ``ml`` and ``ml_score``
+    carried the model's output.
     """
 
     gap_report_id: str
