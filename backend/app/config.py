@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
 
     # Tunables with safe defaults.
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.5-flash"
     gemini_embedding_model: str = "gemini-embedding-001"
     gemini_timeout_seconds: float = 45.0
     backend_cors_origins: str = "http://localhost:5173"
