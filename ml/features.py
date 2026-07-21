@@ -10,10 +10,10 @@ import re
 import numpy as np
 
 from ml.common import (
+    ARTIFACT_DIR,
     FEATURE_NAMES,
     REFERENCE_MONTH,
     REFERENCE_YEAR,
-    SBERT_MODEL_NAME,
 )
 from ml.skills import (
     ALL_SKILLS,
@@ -52,6 +52,13 @@ _SENIORITY_TIERS: list[tuple[tuple[str, ...], int]] = [
     (("intern", "trainee", "junior", "jr.", "jr ", "associate", "coordinator"), 0),
 ]
 _SEMANTIC_CHARS = 1200  # embed only the head of each text: cheap and salient
+
+# Committed ONNX export of all-MiniLM-L6-v2 (see ml/export_onnx.py). Loaded via
+# onnxruntime + tokenizers so inference never pulls in torch/sentence-transformers
+# or downloads from HuggingFace — that path OOM-kills Render's 512MB free tier.
+_ONNX_MODEL_PATH = ARTIFACT_DIR / "onnx" / "model.onnx"
+_ONNX_TOKENIZER_PATH = ARTIFACT_DIR / "onnx" / "tokenizer.json"
+_MAX_SEQ_LENGTH = 256  # sentence_bert_config.json for this model
 
 
 def _seniority_level(title: str) -> int:
@@ -124,7 +131,8 @@ class FeatureExtractor:
 
     def __init__(self):
         self.tfidf = None  # fitted in fit(); pickled with the bundle
-        self._sbert = None
+        self._session = None  # lazy onnxruntime InferenceSession
+        self._tokenizer = None  # lazy tokenizers.Tokenizer
         self._emb_cache: dict[str, np.ndarray] = {}
         self._skill_patterns = None
         self._fuzzy_index = None
@@ -135,7 +143,8 @@ class FeatureExtractor:
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["_sbert"] = None
+        state["_session"] = None
+        state["_tokenizer"] = None
         state["_emb_cache"] = {}
         state["_skill_patterns"] = None
         state["_fuzzy_index"] = None
@@ -175,15 +184,39 @@ class FeatureExtractor:
         return self._fuzzy_index
 
     def _embed(self, text: str) -> np.ndarray:
-        if self._sbert is None:
-            from sentence_transformers import SentenceTransformer
+        """384-dim unit embedding via ONNX Runtime, reproducing the
+        sentence-transformers pipeline: WordPiece tokenization, attention-mask
+        mean pooling over last_hidden_state, then L2 normalization. Callers rely
+        on the vector being unit-length (they use np.dot as cosine)."""
+        # getattr guard so a FeatureExtractor unpickled from an artifact saved
+        # before this attribute existed (e.g. the committed match_scorer.joblib)
+        # still initializes the session lazily — same pattern as fuzzy_index.
+        if getattr(self, "_session", None) is None:
+            import onnxruntime as ort
+            from tokenizers import Tokenizer
 
-            self._sbert = SentenceTransformer(SBERT_MODEL_NAME, device="cpu")
+            self._session = ort.InferenceSession(
+                str(_ONNX_MODEL_PATH), providers=["CPUExecutionProvider"]
+            )
+            self._tokenizer = Tokenizer.from_file(str(_ONNX_TOKENIZER_PATH))
+            self._tokenizer.enable_truncation(max_length=_MAX_SEQ_LENGTH)
         key = text.strip().lower()
         if key not in self._emb_cache:
-            self._emb_cache[key] = self._sbert.encode(
-                [key], normalize_embeddings=True, show_progress_bar=False
-            )[0]
+            enc = self._tokenizer.encode(key)
+            ids = np.array([enc.ids], dtype=np.int64)
+            mask = np.array([enc.attention_mask], dtype=np.int64)
+            (hidden,) = self._session.run(
+                ["last_hidden_state"],
+                {
+                    "input_ids": ids,
+                    "attention_mask": mask,
+                    "token_type_ids": np.zeros_like(ids),
+                },
+            )
+            weights = mask[0][:, None].astype(np.float32)
+            pooled = (hidden[0] * weights).sum(0) / np.clip(weights.sum(), 1e-9, None)
+            norm = float(np.linalg.norm(pooled))
+            self._emb_cache[key] = (pooled / max(norm, 1e-12)).astype(np.float32)
         return self._emb_cache[key]
 
     # -- individual signals ------------------------------------------------
