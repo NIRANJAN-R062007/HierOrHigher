@@ -4,26 +4,13 @@ Run locally with:  uvicorn app.main:app --reload  (from the backend/ dir).
 OpenAPI docs are intentionally enabled at /docs (spec 11).
 """
 
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import gap_reports, health, interviews, ml_score, profiles, resumes
+from app.api.routes import gap_reports, health, interviews, profiles, resumes
 from app.config import get_settings
 from app.core.gemini import GeminiError
-
-
-@asynccontextmanager
-async def _lifespan(app: FastAPI):
-    """Load the offline ML match scorer once at startup (never per-request).
-
-    A missing/corrupt artifact must not take the backend down — the /ml/score
-    route degrades to 503 while every Gemini-backed module keeps working.
-    """
-    ml_score.load_scorer()
-    yield
 
 
 async def _gemini_error_handler(request: Request, exc: GeminiError) -> JSONResponse:
@@ -44,7 +31,6 @@ def create_app() -> FastAPI:
             "all driven by a single parsed resume."
         ),
         version="0.1.0",
-        lifespan=_lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -61,9 +47,6 @@ def create_app() -> FastAPI:
     app.include_router(gap_reports.router, prefix="/api")
     app.include_router(interviews.router, prefix="/api")
     app.include_router(profiles.router, prefix="/api")
-    # Offline match scorer lives at /ml (not /api): Gemini-free utility with
-    # its own output contract (spec: POST /ml/score).
-    app.include_router(ml_score.router)
     return app
 
 
