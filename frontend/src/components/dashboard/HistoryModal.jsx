@@ -26,8 +26,8 @@ function GapDetail({ report }) {
       key={skill}
       className={`rounded-full border px-3 py-1 text-sm font-medium ${
         tone === "matched"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-red-200 bg-red-50 text-red-800"
+          ? "border-emerald-500/30 bg-emerald-900/40 text-emerald-300"
+          : "border-red-500/30 bg-red-900/40 text-red-300"
       }`}
     >
       {tone === "matched" ? "✓ " : "+ "}
@@ -37,13 +37,13 @@ function GapDetail({ report }) {
   return (
     <div>
       <div className="flex items-end justify-between">
-        <p className="text-sm font-semibold text-ink-700">Match strength</p>
-        <p className="font-display text-2xl font-semibold text-ink-900">
+        <p className="text-sm font-semibold text-paper-200">Match strength</p>
+        <p className="font-display text-2xl font-semibold text-paper-50">
           {report.match_percentage}
-          <span className="text-sm font-medium text-ink-400">%</span>
+          <span className="text-sm font-medium text-paper-200/60">%</span>
         </p>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-paper-200">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-700">
         <div
           className="h-full rounded-full bg-gradient-to-r from-gold-600 to-gold-400"
           style={{ width: `${report.match_percentage}%` }}
@@ -51,22 +51,22 @@ function GapDetail({ report }) {
       </div>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         <div>
-          <h4 className="text-sm font-semibold text-ink-700">
+          <h4 className="text-sm font-semibold text-paper-200">
             You already cover{" "}
-            <span className="font-normal text-ink-400">({report.matched.length})</span>
+            <span className="font-normal text-paper-200/50">({report.matched.length})</span>
           </h4>
           <ul className="mt-2 flex flex-wrap gap-2">
-            {report.matched.length === 0 && <li className="text-sm text-ink-400">None</li>}
+            {report.matched.length === 0 && <li className="text-sm text-paper-200/60">None</li>}
             {report.matched.map((skill) => chip(skill, "matched"))}
           </ul>
         </div>
         <div>
-          <h4 className="text-sm font-semibold text-ink-700">
+          <h4 className="text-sm font-semibold text-paper-200">
             Missing for this role{" "}
-            <span className="font-normal text-ink-400">({report.missing.length})</span>
+            <span className="font-normal text-paper-200/50">({report.missing.length})</span>
           </h4>
           <ul className="mt-2 flex flex-wrap gap-2">
-            {report.missing.length === 0 && <li className="text-sm text-ink-400">None</li>}
+            {report.missing.length === 0 && <li className="text-sm text-paper-200/60">None</li>}
             {report.missing.map((skill) => chip(skill, "missing"))}
           </ul>
         </div>
@@ -79,14 +79,14 @@ function InterviewDetail({ set }) {
   return (
     <ol className="space-y-3">
       {set.questions.map((item, index) => (
-        <li key={item.question} className="rounded-xl border border-paper-200 bg-paper-50 p-4">
+        <li key={item.question} className="rounded-xl border border-ink-700 bg-ink-900 p-4">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-ink-400">Q{index + 1}</span>
-            <span className="rounded-full bg-paper-200 px-2.5 py-0.5 text-xs font-semibold text-ink-700">
+            <span className="text-xs font-semibold text-paper-200/50">Q{index + 1}</span>
+            <span className="rounded-full bg-ink-700 px-2.5 py-0.5 text-xs font-semibold text-paper-200">
               {item.category}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-ink-900">{item.question}</p>
+          <p className="mt-2 text-sm leading-relaxed text-paper-50">{item.question}</p>
         </li>
       ))}
     </ol>
@@ -95,9 +95,9 @@ function InterviewDetail({ set }) {
 
 function ProfileDetail({ draft }) {
   const block = (title, text) => (
-    <div key={title} className="rounded-xl border border-paper-200 bg-paper-50 p-4">
-      <h4 className="text-sm font-semibold text-ink-700">{title}</h4>
-      <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-900">{text}</p>
+    <div key={title} className="rounded-xl border border-ink-700 bg-ink-900 p-4">
+      <h4 className="text-sm font-semibold text-paper-200">{title}</h4>
+      <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-paper-50">{text}</p>
     </div>
   );
   return (
@@ -107,7 +107,7 @@ function ProfileDetail({ draft }) {
       {draft.project_descriptions.map((project) =>
         block(`Project — ${project.title}`, project.concise),
       )}
-      <p className="text-xs text-ink-400">
+      <p className="text-xs text-paper-200/60">
         Showing the concise tone — open the Profile section for the tone toggle.
       </p>
     </div>
@@ -122,10 +122,10 @@ function EntryRow({ label, sublabel, onClick }) {
       <button
         type="button"
         onClick={onClick}
-        className="flex w-full items-center justify-between gap-3 rounded-xl border border-paper-200 bg-white px-4 py-2.5 text-left transition-colors hover:border-ink-400"
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-ink-700 bg-ink-800 px-4 py-2.5 text-left transition-colors hover:border-ink-500"
       >
-        <span className="text-sm font-medium text-ink-900">{label}</span>
-        <span className="text-xs text-ink-400">{sublabel}</span>
+        <span className="text-sm font-medium text-paper-50">{label}</span>
+        <span className="text-xs text-paper-200/50">{sublabel}</span>
       </button>
     </li>
   );
@@ -134,9 +134,9 @@ function EntryRow({ label, sublabel, onClick }) {
 function Group({ title, children, empty }) {
   return (
     <section>
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">{title}</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-paper-200/50">{title}</h3>
       {empty ? (
-        <p className="mt-2 text-sm text-ink-400">{empty}</p>
+        <p className="mt-2 text-sm text-paper-200/60">{empty}</p>
       ) : (
         <ul className="mt-2 space-y-2">{children}</ul>
       )}
@@ -220,25 +220,25 @@ export default function HistoryModal({
       role="dialog"
       aria-modal="true"
       aria-label="Run history"
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/40 p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-950/70 p-4 backdrop-blur-sm sm:p-8"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-paper-50 shadow-lift"
+        className="w-full max-w-2xl rounded-2xl border border-ink-700 bg-ink-900 shadow-lift"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-paper-200 px-6 py-4">
+        <header className="flex items-center justify-between border-b border-ink-700 px-6 py-4">
           <div className="flex items-center gap-3">
             {selected && (
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="rounded-full px-2 py-1 text-sm text-ink-500 hover:text-ink-900"
+                className="rounded-full px-2 py-1 text-sm text-paper-200/70 hover:text-paper-50"
               >
                 ← Back
               </button>
             )}
-            <h2 className="font-display text-lg font-semibold text-ink-900">
+            <h2 className="font-display text-lg font-semibold text-paper-50">
               {selected ? detailTitle[selected.type] : "History"}
             </h2>
           </div>
@@ -246,7 +246,7 @@ export default function HistoryModal({
             type="button"
             onClick={onClose}
             aria-label="Close history"
-            className="rounded-full px-2 py-1 text-xl leading-none text-ink-400 hover:text-ink-900"
+            className="rounded-full px-2 py-1 text-xl leading-none text-paper-200/60 hover:text-paper-50"
           >
             ×
           </button>
@@ -256,7 +256,7 @@ export default function HistoryModal({
           {error && <ErrorState message={error} />}
 
           {!selected && (loading || detailLoading) && (
-            <p className="text-sm text-ink-400">Loading…</p>
+            <p className="text-sm text-paper-200/60">Loading…</p>
           )}
 
           {selected && (
