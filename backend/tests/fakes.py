@@ -51,6 +51,11 @@ class FakeRepository:
     def _latest(rows: list[dict]) -> dict | None:
         return max(rows, key=lambda r: r["created_at"], default=None)
 
+    @staticmethod
+    def _newest_first(table: dict, resume_id: str) -> list[dict]:
+        rows = [r for r in table.values() if r["resume_id"] == resume_id]
+        return sorted(rows, key=lambda r: r["created_at"], reverse=True)
+
     # -- resumes --
 
     def get_resume_by_hash(self, user_id, content_hash):
@@ -110,6 +115,13 @@ class FakeRepository:
             [r for r in self.gap_reports.values() if r["resume_id"] == resume_id]
         )
 
+    def list_gap_reports(self, resume_id):
+        return self._newest_first(self.gap_reports, resume_id)
+
+    def get_gap_report(self, resume_id, gap_report_id):
+        row = self.gap_reports.get(gap_report_id)
+        return row if row and row["resume_id"] == resume_id else None
+
     def insert_gap_report(self, row):
         return self._insert(self.gap_reports, row)
 
@@ -127,6 +139,13 @@ class FakeRepository:
             [r for r in self.interview_sets.values() if r["resume_id"] == resume_id]
         )
 
+    def list_interview_sets(self, resume_id):
+        return self._newest_first(self.interview_sets, resume_id)
+
+    def get_interview_set(self, resume_id, interview_set_id):
+        row = self.interview_sets.get(interview_set_id)
+        return row if row and row["resume_id"] == resume_id else None
+
     def insert_interview_set(self, row):
         return self._insert(self.interview_sets, row)
 
@@ -143,6 +162,13 @@ class FakeRepository:
         return self._latest(
             [r for r in self.profile_drafts.values() if r["resume_id"] == resume_id]
         )
+
+    def list_profile_drafts(self, resume_id):
+        return self._newest_first(self.profile_drafts, resume_id)
+
+    def get_profile_draft(self, resume_id, profile_draft_id):
+        row = self.profile_drafts.get(profile_draft_id)
+        return row if row and row["resume_id"] == resume_id else None
 
     def insert_profile_draft(self, row):
         return self._insert(self.profile_drafts, row)
