@@ -26,7 +26,7 @@ export default function StepLoader({ steps, stepMs = 1500 }) {
         return (
           <li key={step} className="flex items-center gap-3 text-sm">
             {state === "done" && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-900/40 text-emerald-300">
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m5 13 4 4L19 7" />
                 </svg>
@@ -39,16 +39,16 @@ export default function StepLoader({ steps, stepMs = 1500 }) {
             )}
             {state === "next" && (
               <span className="flex h-5 w-5 items-center justify-center">
-                <span className="h-2 w-2 rounded-full bg-paper-300" />
+                <span className="h-2 w-2 rounded-full bg-ink-600" />
               </span>
             )}
             <span
               className={
                 state === "current"
-                  ? "font-medium text-ink-900"
+                  ? "font-medium text-paper-50"
                   : state === "done"
-                    ? "text-ink-500"
-                    : "text-ink-400"
+                    ? "text-paper-200/70"
+                    : "text-paper-200/50"
               }
             >
               {step}
