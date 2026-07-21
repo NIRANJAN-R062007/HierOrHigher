@@ -18,7 +18,7 @@ function CopyButton({ text, label }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
       }}
-      className="rounded-full border border-paper-300 px-3 py-1 text-xs font-medium text-ink-500 transition-all hover:border-ink-400 hover:text-ink-900 active:scale-95"
+      className="rounded-full border border-ink-700 px-3 py-1 text-xs font-medium text-paper-200/70 transition-all hover:border-ink-500 hover:text-paper-50 active:scale-95"
     >
       {copied ? "Copied ✓" : "Copy"}
     </button>
@@ -27,12 +27,12 @@ function CopyButton({ text, label }) {
 
 function DraftBlock({ title, text, label }) {
   return (
-    <div className="rounded-xl border border-paper-200 bg-paper-50 p-4">
+    <div className="rounded-xl border border-ink-700 bg-ink-900 p-4">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-sm font-semibold text-ink-700">{title}</h4>
+        <h4 className="text-sm font-semibold text-paper-200">{title}</h4>
         <CopyButton text={text} label={label} />
       </div>
-      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-900">
+      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-paper-50">
         {text}
       </p>
     </div>
@@ -51,23 +51,23 @@ export default function ProfileSection({
   const ready = Boolean(resume);
 
   return (
-    <div className="rounded-2xl border border-paper-200 bg-white p-6 shadow-card">
+    <div className="rounded-2xl border border-ink-700 bg-ink-800 p-6 shadow-card">
       {!ready && (
-        <p className="text-sm text-ink-400">
+        <p className="text-sm text-paper-200/60">
           Upload a resume first — the optimizer rewrites your parsed
           achievements into LinkedIn-ready copy.
         </p>
       )}
       {ready && !profileDraft && !running && (
         <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-ink-500">
+          <p className="text-sm text-paper-200/70">
             A headline, an About section, and outcome-first project rewrites —
             each in two tones, ready to paste into LinkedIn.
           </p>
           <button
             type="button"
             onClick={onGenerate}
-            className="rounded-full bg-ink-900 px-6 py-2.5 text-sm font-semibold text-paper-50 transition-all hover:bg-ink-700 active:scale-95"
+            className="rounded-full bg-gold-500 px-6 py-2.5 text-sm font-semibold text-ink-950 transition-all hover:bg-gold-400 active:scale-95"
           >
             Write my profile
           </button>
@@ -88,7 +88,7 @@ export default function ProfileSection({
           <div
             role="radiogroup"
             aria-label="Tone"
-            className="inline-flex rounded-full border border-paper-300 bg-paper-100 p-1"
+            className="inline-flex rounded-full border border-ink-700 bg-ink-900 p-1"
           >
             {["concise", "detailed"].map((option) => (
               <button
@@ -99,8 +99,8 @@ export default function ProfileSection({
                 onClick={() => setTone(option)}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-all ${
                   tone === option
-                    ? "bg-ink-900 text-paper-50 shadow-sm"
-                    : "text-ink-500 hover:text-ink-900"
+                    ? "bg-gold-500 text-ink-950 shadow-sm"
+                    : "text-paper-200/60 hover:text-paper-50"
                 }`}
               >
                 {option}
@@ -129,7 +129,7 @@ export default function ProfileSection({
             ))}
           </div>
           {profileDraft.cached && (
-            <p role="status" className="mt-4 text-xs text-ink-400">
+            <p role="status" className="mt-4 text-xs text-paper-200/60">
               Served from cache — drafts were already generated for this resume.
             </p>
           )}
