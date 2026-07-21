@@ -7,9 +7,6 @@ parse instead of re-calling the parser.
 
 import uuid
 
-from app.api import deps
-from app.main import app
-from tests.fakes import FakeMatchScorer
 from tests.test_resume_module import upload_resume
 
 
@@ -83,54 +80,10 @@ def test_second_persona_pair_maps_correctly(client, dataset):
     assert body["match_percentage"] == expected["match_percentage"]
 
 
-def test_confident_ml_score_spends_zero_gemini_quota(client, dataset, fake_gemini):
-    """Hybrid rule: a confident offline score serves the whole report."""
-    scorer = FakeMatchScorer(
-        match_score=88.4, confidence=0.95,
-        resume_skills={"Python", "FastAPI", "Docker"},
-        jd_skills={"Python", "FastAPI", "Kubernetes"},
-    )
-    app.dependency_overrides[deps.get_ml_scorer] = lambda: scorer
-
+def test_gap_report_is_always_gemini_sourced(client, dataset):
+    """Every fresh report comes from the Gemini pipeline, with no ml_score."""
     resume_id = upload_resume(client, dataset).json()["resume_id"]
     body = create_gap_report(client, dataset, resume_id).json()
 
-    assert body["source"] == "ml"
-    assert body["matched"] == ["FastAPI", "Python"]
-    assert body["missing"] == ["Kubernetes"]
-    assert body["match_percentage"] == 88
-    assert body["ml_score"]["label"] == "Strong Fit"
-    assert body["ml_score"]["recommend_gemini_review"] is False
-    assert fake_gemini.calls["JDRequirements"] == 0, "confident ML must skip Gemini"
-    assert fake_gemini.calls["embed"] == 0, "confident ML must skip embeddings"
-
-    cached = create_gap_report(client, dataset, resume_id).json()
-    assert cached["cached"] is True
-    assert cached["source"] == "ml"
-    assert scorer.predict_calls == 1, "cache hit must skip the model too"
-
-
-def test_unsure_ml_escalates_to_gemini(client, dataset, fake_gemini):
-    """Ambiguous-band score (45-55) falls back to the embedding pipeline."""
-    scorer = FakeMatchScorer(
-        match_score=50.0, confidence=0.9,
-        resume_skills={"Python"}, jd_skills={"Python", "Go"},
-    )
-    app.dependency_overrides[deps.get_ml_scorer] = lambda: scorer
-
-    resume_id = upload_resume(client, dataset).json()["resume_id"]
-    body = create_gap_report(client, dataset, resume_id).json()
-
-    expected = next(p for p in dataset["personas"] if p["key"] == "asha")[
-        "expected_gap"
-    ]
     assert body["source"] == "gemini"
-    assert body["missing"] == expected["missing"], (
-        "escalated reports must come from the Gemini pipeline unchanged"
-    )
-    assert body["match_percentage"] == expected["match_percentage"]
-    assert body["ml_score"]["recommend_gemini_review"] is True, (
-        "the deferred ML result still rides along for the UI"
-    )
-    assert fake_gemini.calls["JDRequirements"] == 1
-    assert fake_gemini.calls["embed"] == 1
+    assert body["ml_score"] is None
