@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useCountUp } from "../../hooks/useCountUp";
 
+// Ring colours tuned to read on the dark ink card: emerald / gold-400 / red.
 function scoreColor(value) {
-  if (value >= 75) return "#2E9E6B";
-  if (value >= 50) return "#AC8C46";
-  return "#C4554D";
+  if (value >= 75) return "#34B27B";
+  if (value >= 50) return "#D6B26A";
+  return "#E06B62";
 }
 
 /** Radial gauge: the ring fills and the number counts up on reveal. */
@@ -38,7 +39,7 @@ export default function ScoreGauge({ label, value, size = 150 }) {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="#EAE7DC"
+            stroke="#1B2334"
             strokeWidth={strokeWidth}
           />
           <circle
@@ -56,13 +57,13 @@ export default function ScoreGauge({ label, value, size = 150 }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-4xl font-semibold text-ink-900">
+          <span className="font-display text-4xl font-semibold text-paper-50">
             {shown}
           </span>
-          <span className="text-xs font-medium text-ink-400">/ 100</span>
+          <span className="text-xs font-medium text-paper-200/60">/ 100</span>
         </div>
       </div>
-      <figcaption className="mt-3 text-sm font-semibold text-ink-700">
+      <figcaption className="mt-3 text-sm font-semibold text-paper-200">
         {label}
       </figcaption>
     </figure>
