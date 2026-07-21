@@ -7,7 +7,7 @@ export default function ResumeSwitcher({ resumes, activeId, onSelect, busy }) {
 
   return (
     <nav aria-label="Your resumes" className="flex flex-wrap items-center gap-2">
-      <span className="mr-1 text-sm font-semibold text-ink-700">Resumes:</span>
+      <span className="mr-1 text-sm font-semibold text-paper-200">Resumes:</span>
       {resumes.map((resume) => {
         const active = resume.id === activeId;
         return (
@@ -19,12 +19,12 @@ export default function ResumeSwitcher({ resumes, activeId, onSelect, busy }) {
             onClick={() => onSelect(resume.id)}
             className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-all active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
               active
-                ? "border-ink-900 bg-ink-900 text-paper-50"
-                : "border-paper-300 bg-white text-ink-700 hover:border-ink-400"
+                ? "border-gold-500 bg-ink-800 text-paper-50"
+                : "border-ink-700 bg-ink-900 text-paper-200 hover:border-ink-500"
             }`}
           >
             <span className="font-medium">{resume.name || "Untitled resume"}</span>
-            <span className={active ? "text-xs text-gold-300" : "text-xs text-ink-400"}>
+            <span className={active ? "text-xs text-gold-300" : "text-xs text-paper-200/50"}>
               ATS {resume.ats_score.value}
             </span>
           </button>
