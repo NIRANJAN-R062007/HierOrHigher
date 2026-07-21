@@ -19,6 +19,16 @@ class GapReportRequest(BaseModel):
     )
 
 
+class GapReportListItem(BaseModel):
+    """One entry in a resume's gap-report history — the cheap summary the
+    history panel lists. Full matched/missing arrays are fetched on demand."""
+
+    id: str
+    jd_id: str
+    match_percentage: int = Field(ge=0, le=100)
+    created_at: str
+
+
 class GapReportResponse(BaseModel):
     """POST /api/gap-reports response — the module 5.2 contract.
 
