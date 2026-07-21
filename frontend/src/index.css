@@ -30,9 +30,9 @@ body {
   transform: none;
 }
 
-/* Skeleton loading blocks with a shimmer sweep. */
+/* Skeleton loading blocks with a shimmer sweep (dashboard, dark theme). */
 .skeleton {
-  @apply relative overflow-hidden rounded-lg bg-paper-200;
+  @apply relative overflow-hidden rounded-lg bg-ink-700;
 }
 .skeleton::after {
   content: "";
@@ -40,7 +40,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.09),
     transparent
   );
 }
