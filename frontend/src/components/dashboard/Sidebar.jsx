@@ -29,10 +29,10 @@ export default function Sidebar({ sections, onOpenHistory }) {
   }, [sections]);
 
   const itemBase =
-    "flex items-center gap-2.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors lg:w-full lg:rounded-xl lg:py-2.5";
+    "flex items-center gap-2.5 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors lg:w-full lg:rounded-xl lg:border-l-2 lg:border-transparent lg:py-2.5";
 
   return (
-    <aside className="sticky top-0 z-30 -mx-5 border-b border-paper-200 bg-paper-50/90 px-5 py-2 backdrop-blur-md sm:-mx-8 sm:px-8 lg:mx-0 lg:h-[calc(100vh-4rem)] lg:w-56 lg:shrink-0 lg:self-start lg:border-b-0 lg:border-r lg:border-paper-200 lg:bg-transparent lg:px-0 lg:py-6 lg:pr-6 lg:backdrop-blur-none">
+    <aside className="sticky top-0 z-30 -mx-5 border-b border-ink-800 bg-ink-950/90 px-5 py-2 backdrop-blur-md sm:-mx-8 sm:px-8 lg:mx-0 lg:h-[calc(100vh-4rem)] lg:w-56 lg:shrink-0 lg:self-start lg:border-b-0 lg:border-r lg:border-ink-800 lg:bg-transparent lg:px-0 lg:py-6 lg:pr-6 lg:backdrop-blur-none">
       <nav aria-label="Dashboard sections">
         <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
           {sections.map(({ id, label, ready }, index) => {
@@ -44,13 +44,13 @@ export default function Sidebar({ sections, onOpenHistory }) {
                   aria-current={active ? "location" : undefined}
                   className={`${itemBase} ${
                     active
-                      ? "bg-ink-900 text-paper-50"
-                      : "text-ink-500 hover:bg-paper-200/70 hover:text-ink-900"
+                      ? "bg-ink-800 text-paper-50 lg:border-gold-500"
+                      : "text-paper-200/70 hover:bg-ink-800 hover:text-paper-50"
                   }`}
                 >
                   <span
                     className={`hidden h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold lg:flex ${
-                      active ? "bg-paper-50/20 text-paper-50" : "bg-paper-200 text-ink-500"
+                      active ? "bg-gold-500 text-ink-950" : "bg-ink-700 text-paper-200/70"
                     }`}
                   >
                     {index + 1}
@@ -68,8 +68,8 @@ export default function Sidebar({ sections, onOpenHistory }) {
               </li>
             );
           })}
-          <li className="lg:mt-2 lg:border-t lg:border-paper-200 lg:pt-3">
-            <button type="button" onClick={onOpenHistory} className={`${itemBase} text-ink-500 hover:bg-paper-200/70 hover:text-ink-900`}>
+          <li className="lg:mt-2 lg:border-t lg:border-ink-800 lg:pt-3">
+            <button type="button" onClick={onOpenHistory} className={`${itemBase} text-paper-200/70 hover:bg-ink-800 hover:text-paper-50`}>
               <span aria-hidden className="text-base leading-none">🕘</span>
               <span className="flex-1 text-left">History</span>
             </button>
