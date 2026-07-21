@@ -28,6 +28,14 @@ class ProfileDraftRequest(BaseModel):
     resume_id: str
 
 
+class ProfileDraftListItem(BaseModel):
+    """One entry in a resume's profile-draft history — the cheap summary the
+    history panel lists. The full draft content is fetched on demand."""
+
+    id: str
+    created_at: str
+
+
 class ProfileDraftResponse(BaseModel):
     """POST /api/profile-drafts response — the module 5.4 contract."""
 
