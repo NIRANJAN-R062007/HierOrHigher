@@ -58,9 +58,6 @@ def client(fake_repo, fake_gemini):
         deps.get_profile_optimizer_gemini,
     ):
         app.dependency_overrides[gemini_dep] = lambda: fake_gemini
-    # No real ML artifact in hermetic tests: the gap mapper sees "scorer
-    # unavailable" by default; ML-path tests inject FakeMatchScorer instead.
-    app.dependency_overrides[deps.get_ml_scorer] = lambda: None
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
