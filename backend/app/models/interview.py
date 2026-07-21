@@ -27,6 +27,15 @@ class InterviewSetRequest(BaseModel):
     jd_id: str
 
 
+class InterviewSetListItem(BaseModel):
+    """One entry in a resume's interview-set history — the cheap summary the
+    history panel lists. The full question list is fetched on demand."""
+
+    id: str
+    jd_id: str
+    created_at: str
+
+
 class InterviewSetResponse(BaseModel):
     """POST /api/interview-sets response — the module 5.3 contract."""
 
