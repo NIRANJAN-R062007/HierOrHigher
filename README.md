@@ -1,5 +1,7 @@
 # HireOrHigher
 
+**Live app:** https://hierorhigher.vercel.app/
+
 AI-powered career-readiness platform. A user uploads **one resume** and pastes **one job description** — four connected modules run against that single input and land on one dashboard:
 
 1. **Resume Parser + Score** — structured parsing plus a dual score: a deterministic, rule-based ATS score and an LLM-judged human-readability score, each with a breakdown of what drove it.
@@ -30,7 +32,6 @@ supabase/migrations/  # SQL migrations — RLS enabled in the same file as each 
 scripts/seed.py       # loads the sample dataset for an instant, Gemini-free demo
 data/samples/         # sample resumes + JDs (test fixtures and seed source)
 frontend/             # Vite + React + Tailwind app (landing, auth, dashboard)
-ml/                   # isolated ML package: offline resume-to-job match scorer
 ```
 
 ## Prerequisites
@@ -105,53 +106,6 @@ Integration tests run real sample resume/JD pairs from `data/samples/dataset.jso
 - the pair marked "should show 3 missing skills" returns exactly those 3;
 - the gap mapper / interview / profile modules never re-call the parser;
 - reloading the dashboard overview triggers zero Gemini calls.
-
-## ML: offline Resume-to-Job Match Scorer
-
-`POST /ml/score` predicts how well a resume matches a JD — score 0–100, a
-Strong/Moderate/Weak label, per-feature breakdown, and up to 5 missing skills —
-with **no Gemini call**. The Gap-to-Job Mapper uses it for fast, free scoring and
-only escalates to Gemini when the response carries `recommend_gemini_review: true`
-(confidence < 0.6 or score in the ambiguous 45–55 band).
-
-**Architecture decisions**
-
-- **Feature-based regression, not end-to-end text models.** Six engineered
-  features (skill overlap with alias resolution, asymmetric-sigmoid experience
-  match, ordinal education match, MiniLM title cosine, TF-IDF keyword density,
-  section completeness) feed a tuned XGBoost regressor. On synthetic-but-noisy
-  data this beat a Ridge baseline honestly (5-fold CV MAE 5.42 vs 5.75) and the
-  breakdown in the API response falls straight out of the feature vector.
-- **One bundled artifact.** Model + fitted TF-IDF vectorizer travel in a single
-  joblib file (~0.14 MB), so training and inference can never drift apart. The
-  sentence-transformer is referenced by name and loaded lazily at startup.
-- **Anti-leakage by construction.** The dataset generator's hidden scoring
-  rubric lives only in `ml/generate_data.py`; training and inference recompute
-  every feature from raw text and never import the generator.
-- **Graceful degradation.** The model loads once via the FastAPI lifespan hook;
-  a missing/corrupt artifact turns `/ml/score` into a clear 503 without touching
-  the Gemini modules. Results are cached in `ml_score_cache` (migration 0008)
-  keyed by `sha256(resume_text + job_description)`, mirroring the
-  check-cache-before-Gemini strategy.
-- **CPU-only and deterministic**: fixed seed 42 end-to-end, single-prediction
-  latency ~3 ms, all ML dependencies isolated in `ml/requirements.txt`.
-
-Held-out test set (500 pairs): **R² 0.923 · MAE 5.2 · label accuracy 87%**,
-no feature above 46% importance, calibration monotonic across labels.
-
-**Retrain from scratch (3 commands, repo root):**
-
-```bash
-pip install -r ml/requirements.txt
-python -m ml.generate_data          # 5,000 synthetic resume/JD pairs -> ml/data/
-python -m ml.train                  # compare Ridge/RF/XGBoost, tune, gate, save artifact
-```
-
-Then verify with `python -m ml.evaluate` and `python -m ml.verify_inference`.
-macOS note: if the process dies silently during training, xgboost and torch are
-fighting over OpenMP — point xgboost's rpath at torch's bundled libomp
-(`install_name_tool -rpath /opt/homebrew/opt/libomp/lib <venv>/lib/python3*/site-packages/torch/lib <venv>/lib/python3*/site-packages/xgboost/lib/libxgboost.dylib`
-then `codesign -f -s -` the same dylib).
 
 ## Design & engineering notes
 
