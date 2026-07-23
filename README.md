@@ -35,6 +35,20 @@ Every module result is persisted in Supabase and keyed by content hash, so reloa
 | 3 | **Mock Interview Generator** | 8–10 questions tagged Technical / Behavioral / Role-Fit, written from the candidate's actual projects, history, and identified gaps. |
 | 4 | **LinkedIn / Portfolio Optimizer** | Headline, About section, and outcome-oriented project rewrites, each in Concise and Detailed tone variants. |
 
+## 🔄 How it works
+
+```mermaid
+flowchart LR
+    A["📄 Resume + 📋 Job description"] --> B["Resume Parser + Score"]
+    B --> C["Gap-to-Job Mapper"]
+    B --> D["Mock Interview Generator"]
+    B --> E["LinkedIn / Portfolio Optimizer"]
+    C & D & E --> F["📊 One dashboard"]
+    B & C & D & E -.->|"content-hash cache"| G[("Supabase")]
+```
+
+One upload feeds every module. Each result is cached by content hash in Supabase, so reopening the dashboard replays previous results instantly and never re-spends Gemini quota on identical input.
+
 ## 🧱 Tech stack
 
 - **Frontend** — React + Tailwind, built with Vite
@@ -45,10 +59,27 @@ Every module result is persisted in Supabase and keyed by content hash, so reloa
 ## 🏗️ Architecture & engineering notes
 
 - **Caching:** resumes hash by file bytes, JDs by text, cross-module results by `sha256(resume_hash : jd_hash)` — every service checks Supabase before calling Gemini, so nothing is ever computed twice.
+- **Isolated Gemini quota:** each of the four modules uses its own dedicated API key, so one module hitting a rate limit or cost ceiling never blocks the others.
 - **Prompt-injection defense:** resumes and JDs are wrapped in `<user_submitted_content>` tags, and every prompt file instructs the model to treat that content strictly as data.
 - **Safe uploads:** content-type is verified by magic-byte inspection (not file extension), with a 5 MB cap, sanitized filenames, and a per-user sliding-window rate limit.
 - **Resilient Gemini calls:** every call has a timeout and one retry; failures surface as a specific 502 the UI renders as an inline error state, and garbled parses (fewer than 2 structured fields) return a clear re-upload prompt.
 - **Cohesive UI:** one design-token set (ink/gold/paper palette, Fraunces + Inter) shared by the cinematic dark landing page and the functional dashboard — animated score gauges, step-by-step loaders, skeletons, scroll-reveals, and reduced-motion support throughout.
+
+## 🔌 API
+
+All routes are prefixed with `/api` and require an authenticated Supabase session (Bearer token).
+
+| Method & path | Purpose |
+|---|---|
+| `GET /health` | Service health check |
+| `POST /resumes` | Upload, parse, and score a resume |
+| `GET /resumes` | List the caller's resumes |
+| `GET /resumes/{id}/overview` | Full dashboard state — all four modules in one call |
+| `POST /gap-reports` | Map a job description against a resume |
+| `POST /interview-sets` | Generate a mock interview set |
+| `POST /profile-drafts` | Generate LinkedIn / portfolio rewrites |
+
+Each module also exposes read-only history routes (`GET /{module}?resume_id=…` and `GET /{module}/{id}`) that replay past runs straight from Supabase with no Gemini call. Interactive OpenAPI docs are served at `/docs`.
 
 ## 📁 Repository layout
 
