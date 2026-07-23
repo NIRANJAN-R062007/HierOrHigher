@@ -68,31 +68,3 @@ scripts/seed.py       # loads the sample dataset for an instant, Gemini-free dem
 data/samples/         # sample resumes + JDs (test fixtures and seed source)
 frontend/             # Vite + React + Tailwind app (landing, auth, dashboard)
 ```
-
-## Prerequisites
-
-- Python 3.11+ · Node 18+ · a [Supabase](https://supabase.com) project · four Gemini API keys ([Google AI Studio](https://aistudio.google.com))
-
-## Seeding demo data
-
-Loads the sample dataset (two personas with all four module results) straight into Supabase, so a review demo shows populated results instantly — no live uploads, no waiting on Gemini:
-
-```bash
-.venv/bin/python scripts/seed.py
-```
-
-The script is idempotent, prints the demo login (`demo@hireorhigher.dev` / `DEMO_USER_PASSWORD` env var, with a default it prints), and recomputes the ATS score with the real rule-based scorer so seeded rows match live behavior exactly.
-
-## Tests
-
-```bash
-cd backend && ../.venv/bin/python -m pytest
-```
-
-Integration tests run real sample resume/JD pairs from `data/samples/dataset.json` through the actual endpoints with a dataset-driven fake Gemini + in-memory repository (no network, no keys). They pin the acceptance criteria, including:
-
-- both scores return with populated breakdowns;
-- an identical re-upload is served from the content-hash cache with **no** Gemini call;
-- the pair marked "should show 3 missing skills" returns exactly those 3;
-- the gap mapper / interview / profile modules never re-call the parser;
-- reloading the dashboard overview triggers zero Gemini calls.
