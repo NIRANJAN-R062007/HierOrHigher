@@ -139,6 +139,22 @@ class SupabaseRepository:
             .eq("id", gap_report_id)
         )
 
+    def list_gap_matches_for_user(self, user_id: str) -> list[dict]:
+        """Every gap report's match percentage across ALL the caller's
+        resumes, newest first — the source for the analytics distribution.
+
+        ``gap_reports`` has no ``user_id`` of its own, so this joins through
+        the owning resume (``resumes!inner``) and filters by ``resumes.user_id``
+        — mirroring the RLS policy. Lightweight columns only."""
+        return (
+            self.client.table("gap_reports")
+            .select("match_percentage, created_at, jd_id, resumes!inner(user_id)")
+            .eq("resumes.user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        )
+
     def insert_gap_report(self, row: dict) -> dict:
         return self.client.table("gap_reports").insert(row).execute().data[0]
 

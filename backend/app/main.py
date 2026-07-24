@@ -8,7 +8,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import gap_reports, health, interviews, profiles, resumes
+from app.api.routes import (
+    analytics,
+    gap_reports,
+    health,
+    interviews,
+    profiles,
+    resumes,
+)
 from app.config import get_settings
 from app.core.gemini import GeminiError
 
@@ -47,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(gap_reports.router, prefix="/api")
     app.include_router(interviews.router, prefix="/api")
     app.include_router(profiles.router, prefix="/api")
+    app.include_router(analytics.router, prefix="/api")
     return app
 
 

@@ -122,6 +122,13 @@ class FakeRepository:
         row = self.gap_reports.get(gap_report_id)
         return row if row and row["resume_id"] == resume_id else None
 
+    def list_gap_matches_for_user(self, user_id):
+        owned = {
+            rid for rid, r in self.resumes.items() if r["user_id"] == user_id
+        }
+        rows = [r for r in self.gap_reports.values() if r["resume_id"] in owned]
+        return sorted(rows, key=lambda r: r["created_at"], reverse=True)
+
     def insert_gap_report(self, row):
         return self._insert(self.gap_reports, row)
 

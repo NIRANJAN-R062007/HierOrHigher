@@ -87,4 +87,7 @@ export const api = {
     request(`/profile-drafts?resume_id=${resumeId}`),
   getProfileDraft: (id, resumeId) =>
     request(`/profile-drafts/${id}?resume_id=${resumeId}`),
+
+  // Analytics (read-only): cross-run aggregates powering the analytics page.
+  getGapDistribution: () => request("/analytics/gap-distribution"),
 };

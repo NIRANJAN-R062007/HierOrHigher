@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 /**
  * Dashboard navigation rail: the four module sections as a numbered stepper
@@ -73,6 +74,12 @@ export default function Sidebar({ sections, onOpenHistory }) {
               <span aria-hidden className="text-base leading-none">🕘</span>
               <span className="flex-1 text-left">History</span>
             </button>
+          </li>
+          <li>
+            <Link to="/analytics" className={`${itemBase} text-paper-200/70 hover:bg-ink-800 hover:text-paper-50`}>
+              <span aria-hidden className="text-base leading-none">📊</span>
+              <span className="flex-1 text-left">Analytics</span>
+            </Link>
           </li>
         </ul>
       </nav>
