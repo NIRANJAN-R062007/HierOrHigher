@@ -31,9 +31,11 @@ Every module result is persisted in Supabase and keyed by content hash, so reloa
 | # | Module | What it does |
 |---|---|---|
 | 1 | **Resume Parser + Score** | Structured parsing plus a dual score: a deterministic, rule-based ATS score and an LLM-judged human-readability score, each with a breakdown of what drove it. |
-| 2 | **Gap-to-Job Mapper** | Embedding-based (semantic, not keyword) comparison of the parsed resume against the JD: matched skills, missing skills, match percentage. |
+| 2 | **Gap-to-Job Mapper** | Embedding-based (semantic, not keyword) comparison of the parsed resume against the JD: matched skills, missing skills, match percentage, and a skill-gap radar of coverage by category. |
 | 3 | **Mock Interview Generator** | 8–10 questions tagged Technical / Behavioral / Role-Fit, written from the candidate's actual projects, history, and identified gaps. |
 | 4 | **LinkedIn / Portfolio Optimizer** | Headline, About section, and outcome-oriented project rewrites, each in Concise and Detailed tone variants. |
+
+Beyond the per-resume modules: a **cross-run analytics dashboard** — a histogram of your match percentages across every job description you've mapped — and **Google OAuth** sign-in alongside email/password.
 
 ## 🔄 How it works
 
@@ -54,7 +56,8 @@ One upload feeds every module. Each result is cached by content hash in Supabase
 - **Frontend** — React + Tailwind, built with Vite
 - **Backend** — FastAPI (Python)
 - **AI** — Google Gemini (structured output + embeddings)
-- **Data** — Supabase (PostgreSQL + Auth + Storage)
+- **Auth** — Supabase Auth (email/password + Google OAuth)
+- **Data** — Supabase (PostgreSQL + Storage), row-level security per user
 
 ## 🏗️ Architecture & engineering notes
 
@@ -78,6 +81,7 @@ All routes are prefixed with `/api` and require an authenticated Supabase sessio
 | `POST /gap-reports` | Map a job description against a resume |
 | `POST /interview-sets` | Generate a mock interview set |
 | `POST /profile-drafts` | Generate LinkedIn / portfolio rewrites |
+| `GET /analytics/gap-distribution` | Match-percentage distribution across all your gap reports |
 
 Each module also exposes read-only history routes (`GET /{module}?resume_id=…` and `GET /{module}/{id}`) that replay past runs straight from Supabase with no Gemini call. Interactive OpenAPI docs are served at `/docs`.
 
@@ -86,7 +90,7 @@ Each module also exposes read-only history routes (`GET /{module}?resume_id=…`
 ```
 backend/
   app/
-    api/routes/     # one route file per feature area (health, resumes, gap, interviews, profiles)
+    api/routes/     # one route file per feature area (health, resumes, gap, interviews, profiles, analytics)
     api/deps.py     # auth, repository, per-module Gemini clients, rate limit
     core/           # Gemini wrapper (timeout + retry-once), hashing, file validation, prompt loader
     db/             # Supabase client + repository (the only DB touchpoint)
@@ -97,5 +101,5 @@ backend/
 supabase/migrations/  # SQL migrations — RLS enabled in the same file as each CREATE TABLE
 scripts/seed.py       # loads the sample dataset for an instant, Gemini-free demo
 data/samples/         # sample resumes + JDs (test fixtures and seed source)
-frontend/             # Vite + React + Tailwind app (landing, auth, dashboard)
+frontend/             # Vite + React + Tailwind app (landing, auth, dashboard, analytics)
 ```
