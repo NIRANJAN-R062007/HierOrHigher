@@ -7,6 +7,8 @@ parse instead of re-calling the parser.
 
 import uuid
 
+from app.models.gap_report import JDRequirements, SkillCategory
+from app.services.gap_service import _group_by_category
 from tests.test_resume_module import upload_resume
 
 
@@ -87,3 +89,41 @@ def test_gap_report_is_always_gemini_sourced(client, dataset):
 
     assert body["source"] == "gemini"
     assert body["ml_score"] is None
+
+
+def test_group_by_category_buckets_and_normalizes():
+    grouped = _group_by_category(
+        matched=["Python", "React"],
+        missing=["Kubernetes"],
+        skill_to_category={
+            "python": "Languages",
+            "react": "Frameworks & Libraries",
+            "kubernetes": "Cloud & DevOps",
+        },
+    )
+    assert grouped["Languages"] == {"matched": ["Python"], "missing": []}
+    assert grouped["Frameworks & Libraries"]["matched"] == ["React"]
+    assert grouped["Cloud & DevOps"]["missing"] == ["Kubernetes"]
+
+
+def test_group_by_category_is_none_without_tags():
+    """No category tags (e.g. a legacy/dataset response) -> flat-view fallback."""
+    assert _group_by_category(["Python"], ["Go"], {}) is None
+
+
+def test_gap_report_groups_requirements_by_category(client, dataset, fake_gemini):
+    """When the model tags requirements, the report carries a radar breakdown."""
+    persona = next(p for p in dataset["personas"] if p["key"] == "asha")
+    reqs = persona["job_description"]["requirements"]
+    fake_gemini.overrides["JDRequirements"] = JDRequirements(
+        requirements=reqs,
+        categories=[SkillCategory(skill=r, category="Languages") for r in reqs],
+    )
+
+    resume_id = upload_resume(client, dataset).json()["resume_id"]
+    body = create_gap_report(client, dataset, resume_id).json()
+
+    assert body["categories"] is not None
+    bucket = body["categories"]["Languages"]
+    assert sorted(bucket["matched"]) == sorted(body["matched"])
+    assert sorted(bucket["missing"]) == sorted(body["missing"])

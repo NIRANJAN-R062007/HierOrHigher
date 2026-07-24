@@ -14,6 +14,18 @@ EXTRACTION RULES
 - Skip generic filler ("team player", "fast-paced environment") unless the posting states it as an explicit, assessable requirement.
 - Use the job description's own naming for each skill where possible.
 
+CATEGORIZATION RULES
+- In "categories", return one entry per extracted requirement: the exact requirement string plus one category.
+- Choose the category from this fixed set ONLY (use the exact spelling):
+  - "Languages" — programming/query languages (Python, SQL, Go).
+  - "Frameworks & Libraries" — frameworks and libraries (React, Django, PyTorch).
+  - "Tools & Platforms" — dev tools, SaaS, and platforms (Git, Figma, Jira).
+  - "Cloud & DevOps" — cloud, infra, CI/CD, containers (AWS, Docker, Kubernetes).
+  - "Data & ML" — data, analytics, and machine-learning skills (ETL, A/B Testing, NLP).
+  - "Concepts & Soft Skills" — methodologies and non-technical competencies (Agile, Communication, System Design).
+- Pick the single best-fitting category; when unsure, use "Concepts & Soft Skills".
+
 OUTPUT
 - Respond ONLY with JSON matching the response schema.
-- Keep the entire response under 500 tokens.
+- "categories" must cover every requirement in "requirements" exactly once.
+- Keep the entire response under 600 tokens.

@@ -89,4 +89,5 @@ def get_gap_report(
         cached=True,
         source=row.get("source") or "gemini",
         ml_score=row.get("ml_score"),
+        categories=row.get("categories"),
     )

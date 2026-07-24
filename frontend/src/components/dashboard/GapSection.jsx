@@ -1,4 +1,5 @@
 import ErrorState from "./ErrorState";
+import SkillRadar from "./SkillRadar";
 import StepLoader from "./StepLoader";
 
 const GAP_STEPS = [
@@ -119,6 +120,11 @@ export default function GapSection({
                   style={{ width: `${gap.match_percentage}%` }}
                 />
               </div>
+              {gap.categories && (
+                <div className="mt-6 flex justify-center">
+                  <SkillRadar categories={gap.categories} />
+                </div>
+              )}
               <div className="mt-6 grid gap-6 md:grid-cols-2">
                 <ChipList title="You already cover" items={gap.matched} tone="matched" />
                 <ChipList title="Missing for this role" items={gap.missing} tone="missing" />

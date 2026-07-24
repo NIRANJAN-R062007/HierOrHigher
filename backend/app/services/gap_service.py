@@ -65,6 +65,30 @@ def _classify_requirements(
     return matched, missing
 
 
+def _normalize(term: str) -> str:
+    return " ".join(term.lower().split())
+
+
+def _group_by_category(
+    matched: list[str], missing: list[str], skill_to_category: dict[str, str]
+) -> dict[str, dict[str, list[str]]] | None:
+    """Bucket matched/missing requirements by taxonomy category for the radar.
+
+    Returns ``{category: {"matched": [...], "missing": [...]}}`` or ``None``
+    when no requirement carried a category (nothing to plot — the UI then
+    falls back to the flat matched/missing view).
+    """
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for bucket, skills in (("matched", matched), ("missing", missing)):
+        for skill in skills:
+            category = skill_to_category.get(_normalize(skill))
+            if category is None:
+                continue
+            grouped.setdefault(category, {"matched": [], "missing": []})
+            grouped[category][bucket].append(skill)
+    return grouped or None
+
+
 def _response_from_row(row: dict, resume_id: str, *, cached: bool) -> GapReportResponse:
     return GapReportResponse(
         gap_report_id=str(row["id"]),
@@ -79,6 +103,7 @@ def _response_from_row(row: dict, resume_id: str, *, cached: bool) -> GapReportR
         # always Gemini-sourced with no ml_score.
         source=row.get("source") or "gemini",
         ml_score=row.get("ml_score"),
+        categories=row.get("categories"),
     )
 
 
@@ -112,12 +137,19 @@ def build_gap_report(
     if cached_row is not None:
         return _response_from_row(cached_row, resume_id, cached=True)
 
+    # Category tags are produced alongside requirement extraction, so they're
+    # available only on a fresh JD. For a JD already extracted (cache hit) we
+    # skip re-spending Gemini, and the report falls back to the flat view.
+    skill_to_category: dict[str, str] = {}
     jd_row = repo.get_jd_by_hash(user_id, jd_hash)
     if jd_row is None:
         prompt = load_prompt("gap_mapper") + "\n\n" + wrap_untrusted(jd_text)
         extraction: JDRequirements = gemini.generate_structured(
             prompt, JDRequirements, max_output_tokens=1024, temperature=0.0
         )
+        skill_to_category = {
+            _normalize(item.skill): item.category for item in extraction.categories
+        }
         jd_row = repo.insert_job_description(
             {
                 "user_id": user_id,
@@ -143,6 +175,7 @@ def build_gap_report(
             "missing": missing,
             "match_percentage": match_percentage,
             "source": "gemini",
+            "categories": _group_by_category(matched, missing, skill_to_category),
         }
     )
     return _response_from_row(row, resume_id, cached=False)

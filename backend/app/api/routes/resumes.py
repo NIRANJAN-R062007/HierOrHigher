@@ -108,6 +108,7 @@ def get_resume_overview(
             missing=gap_row["missing"],
             match_percentage=gap_row["match_percentage"],
             cached=True,
+            categories=gap_row.get("categories"),
         )
         if gap_row
         else None,

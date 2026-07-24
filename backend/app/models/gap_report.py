@@ -1,13 +1,46 @@
 """Module 5.2 contracts: JD requirement extraction and the gap report."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+# Fixed skill taxonomy — the stable axes of the dashboard's gap radar. Gemini
+# tags each extracted requirement with exactly one of these, so the radar's
+# shape is comparable across resumes and job descriptions.
+SkillCategoryName = Literal[
+    "Languages",
+    "Frameworks & Libraries",
+    "Tools & Platforms",
+    "Cloud & DevOps",
+    "Data & ML",
+    "Concepts & Soft Skills",
+]
+
+SKILL_CATEGORIES: tuple[str, ...] = SkillCategoryName.__args__
+
+
+class SkillCategory(BaseModel):
+    """One extracted requirement tagged with its taxonomy category."""
+
+    skill: str
+    category: SkillCategoryName
 
 
 class JDRequirements(BaseModel):
-    """Gemini structured-output schema for the gap_mapper module."""
+    """Gemini structured-output schema for the gap_mapper module.
+
+    ``categories`` is additive and optional: when present it tags each
+    requirement with a taxonomy category (powering the gap radar). Older
+    responses / dataset fixtures that omit it still validate — the report just
+    falls back to the flat matched/missing view.
+    """
 
     requirements: list[str] = Field(
         description="Concrete skills/technologies/competencies the job requires"
+    )
+    categories: list[SkillCategory] = Field(
+        default_factory=list,
+        description="Each requirement tagged with one taxonomy category",
     )
 
 
@@ -36,6 +69,10 @@ class GapReportResponse(BaseModel):
     fields are retained for reports written while the offline ML scorer was
     still in the loop, where ``source`` could be ``ml`` and ``ml_score``
     carried the model's output.
+
+    ``categories`` groups the matched/missing requirements by taxonomy
+    category for the gap radar — ``{category: {"matched": [...],
+    "missing": [...]}}`` — or ``None`` when the model returned no categories.
     """
 
     gap_report_id: str
@@ -47,3 +84,4 @@ class GapReportResponse(BaseModel):
     cached: bool = False
     source: str = "gemini"
     ml_score: dict | None = None
+    categories: dict | None = None
