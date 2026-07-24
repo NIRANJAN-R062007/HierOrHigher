@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthShell from "../components/AuthShell";
+import GoogleAuthButton from "../components/GoogleAuthButton";
 import { useAuth } from "../context/AuthContext";
 
 const INPUT_CLASSES =
@@ -53,7 +54,8 @@ export default function Signup() {
           Confirm your email, then sign in.
         </p>
       ) : (
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="block text-sm font-medium text-paper-200/85">
             Email
             <input
@@ -91,7 +93,9 @@ export default function Signup() {
           >
             {submitting ? "Creating account…" : "Create account"}
           </button>
-        </form>
+          </form>
+          <GoogleAuthButton label="Sign up with Google" />
+        </>
       )}
     </AuthShell>
   );
