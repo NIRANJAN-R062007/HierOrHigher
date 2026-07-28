@@ -81,6 +81,14 @@ export default function Sidebar({ sections, onOpenHistory }) {
               <span className="flex-1 text-left">Analytics</span>
             </Link>
           </li>
+          {/* The recruiter side is the same account, not a separate login —
+              this is the only way to discover it from the app. */}
+          <li>
+            <Link to="/hiring" className={`${itemBase} text-paper-200/70 hover:bg-ink-800 hover:text-paper-50`}>
+              <span aria-hidden className="text-base leading-none">🧑‍💼</span>
+              <span className="flex-1 text-left">Hiring</span>
+            </Link>
+          </li>
         </ul>
       </nav>
     </aside>
