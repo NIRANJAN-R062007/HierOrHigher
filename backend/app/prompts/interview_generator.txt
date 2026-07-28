@@ -12,7 +12,9 @@ GENERATION RULES
 - Tag every question with exactly one category: "Technical", "Behavioral", or "Role-Fit".
 - Mix: 3-4 Technical questions tied to specific skills or projects on the resume; 3 Behavioral questions tied to specific items in the work history; 2-3 Role-Fit questions probing the identified missing skills or the jump between current experience and the target role.
 - Every question must reference a concrete detail (a project name, a metric, a listed skill, a gap) — no generic questions that could be asked of any candidate.
-- Questions should be challenging but fair for the candidate's seniority level.
+- Spend each question on a different skill, project, or role. Return to one only when the resume marks it as the candidate's clear differentiator — their longest-held role, or the project the job description most directly targets — and make the second question probe a different angle, never a rephrasing of the first.
+- When the resume is thin, widen rather than repeat: draw on coursework, certifications, and the missing skills below to reach 8 questions.
+- Calibrate difficulty to the seniority implied by the work history. For a candidate with 0-1 years, ask how they built something on their own resume and why they chose that approach; do not ask them to design a system for millions of users or to describe leading a team. For a senior candidate, skip definitions and ask about tradeoffs they weighed, failures they absorbed, and what they would decide differently now.
 
 OUTPUT
 - Respond ONLY with JSON matching the response schema.
