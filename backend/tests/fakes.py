@@ -12,10 +12,25 @@ import io
 import uuid
 from collections import Counter
 from datetime import datetime, timezone
+from functools import lru_cache
 
 
+@lru_cache(maxsize=None)
 def build_docx(text: str) -> bytes:
-    """Build a real DOCX in memory from plain resume text (test fixture)."""
+    """Build a real DOCX in memory from plain resume text (test fixture).
+
+    Memoized because a DOCX is a zip, and zip entries carry an MS-DOS
+    timestamp with two-second resolution: building the same text twice returns
+    byte-identical output only while both calls land in the same two-second
+    slot. Every cache assertion in this suite keys on ``sha256`` of these
+    bytes ("an identical re-upload must not re-call Gemini", "the same resume
+    across two postings is one candidate"), so without memoization those tests
+    fail whenever the two builds happen to straddle a boundary.
+
+    Returning the same immutable ``bytes`` to every caller is safe, and makes
+    "the same resume" mean the same thing to the tests as it does to the
+    content-hash cache under test.
+    """
     import docx
 
     document = docx.Document()
