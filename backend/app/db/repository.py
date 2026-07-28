@@ -390,6 +390,27 @@ class SupabaseRepository:
             .data[0]
         )
 
+    def cache_posting_requirements(
+        self, posting_id: str, requirements: list[str], requirements_hash: str
+    ) -> dict:
+        """Store the JD requirements just extracted for this posting.
+
+        Separate from ``update_job_posting`` because this is a cache fill, not
+        an edit: it must not move ``updated_at``, which recruiters read as
+        "when the posting last changed"."""
+        return (
+            self.client.table("job_postings")
+            .update(
+                {
+                    "parsed_requirements": requirements,
+                    "requirements_hash": requirements_hash,
+                }
+            )
+            .eq("id", posting_id)
+            .execute()
+            .data[0]
+        )
+
     # -- candidates (recruiter side; no auth.uid() owner) ----------------------
 
     def get_candidate_by_hash(self, org_id: str, content_hash: str) -> dict | None:
