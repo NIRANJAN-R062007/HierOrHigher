@@ -40,6 +40,14 @@ class FakeRepository:
         self.interview_sets: dict[str, dict] = {}
         self.profile_drafts: dict[str, dict] = {}
         self.uploaded_files: dict[str, bytes] = {}
+        # Recruiter side. candidates/applications have no user_id at all —
+        # they are reachable only through an org, exactly as in Supabase where
+        # those tables are default-denied to every direct client.
+        self.organizations: dict[str, dict] = {}
+        self.org_members: dict[str, dict] = {}
+        self.job_postings: dict[str, dict] = {}
+        self.candidates: dict[str, dict] = {}
+        self.applications: dict[str, dict] = {}
 
     @staticmethod
     def _insert(table: dict, row: dict) -> dict:
@@ -179,6 +187,151 @@ class FakeRepository:
 
     def insert_profile_draft(self, row):
         return self._insert(self.profile_drafts, row)
+
+    # -- organizations & members --
+
+    def insert_organization(self, row):
+        return self._insert(self.organizations, row)
+
+    def get_organization(self, org_id):
+        return self.organizations.get(org_id)
+
+    def list_organizations_by_ids(self, org_ids):
+        return [self.organizations[i] for i in org_ids if i in self.organizations]
+
+    def list_memberships_for_user(self, user_id, email):
+        # Mirrors the repository's two lookups: rows already bound to this
+        # auth user, plus invites addressed to their email but never claimed.
+        rows = [
+            r
+            for r in self.org_members.values()
+            if r.get("user_id") == user_id
+            or (
+                r.get("user_id") is None
+                and email
+                and (r.get("email") or "").lower() == email.lower()
+            )
+        ]
+        return sorted(rows, key=lambda r: r["created_at"], reverse=True)
+
+    def get_org_membership(self, org_id, user_id, email):
+        return next(
+            (
+                r
+                for r in self.list_memberships_for_user(user_id, email)
+                if str(r["org_id"]) == org_id
+            ),
+            None,
+        )
+
+    def list_org_members(self, org_id):
+        rows = [r for r in self.org_members.values() if str(r["org_id"]) == org_id]
+        return sorted(rows, key=lambda r: r["created_at"])
+
+    def get_org_member_by_email(self, org_id, email):
+        return next(
+            (
+                r
+                for r in self.org_members.values()
+                if str(r["org_id"]) == org_id
+                and (r.get("email") or "").lower() == email.lower()
+            ),
+            None,
+        )
+
+    def insert_org_member(self, row):
+        return self._insert(self.org_members, row)
+
+    def claim_org_membership(self, membership_id, user_id):
+        self.org_members[membership_id]["user_id"] = user_id
+        return self.org_members[membership_id]
+
+    # -- job postings --
+
+    def insert_job_posting(self, row):
+        stored = self._insert(self.job_postings, row)
+        stored["updated_at"] = stored["created_at"]
+        stored.setdefault("parsed_requirements", None)
+        stored.setdefault("requirements_hash", None)
+        return stored
+
+    def get_job_posting(self, posting_id):
+        return self.job_postings.get(posting_id)
+
+    def list_job_postings(self, org_id):
+        rows = [r for r in self.job_postings.values() if str(r["org_id"]) == org_id]
+        return sorted(rows, key=lambda r: r["created_at"], reverse=True)
+
+    def update_job_posting(self, posting_id, updates):
+        row = self.job_postings[posting_id]
+        row.update(updates)
+        row["updated_at"] = _now()
+        return row
+
+    def cache_posting_requirements(self, posting_id, requirements, requirements_hash):
+        row = self.job_postings[posting_id]
+        row["parsed_requirements"] = requirements
+        row["requirements_hash"] = requirements_hash
+        return row
+
+    # -- candidates --
+
+    def get_candidate_by_hash(self, org_id, content_hash):
+        return next(
+            (
+                r
+                for r in self.candidates.values()
+                if str(r["org_id"]) == org_id and r["content_hash"] == content_hash
+            ),
+            None,
+        )
+
+    def insert_candidate(self, row):
+        return self._insert(self.candidates, row)
+
+    def update_candidate(self, candidate_id, updates):
+        self.candidates[candidate_id].update(updates)
+        return self.candidates[candidate_id]
+
+    def list_candidates_by_ids(self, candidate_ids):
+        return [self.candidates[i] for i in candidate_ids if i in self.candidates]
+
+    # -- applications --
+
+    def get_application(self, posting_id, candidate_id):
+        return next(
+            (
+                r
+                for r in self.applications.values()
+                if str(r["posting_id"]) == posting_id
+                and str(r["candidate_id"]) == candidate_id
+            ),
+            None,
+        )
+
+    def insert_application(self, row):
+        return self._insert(self.applications, row)
+
+    def update_application(self, application_id, updates):
+        self.applications[application_id].update(updates)
+        return self.applications[application_id]
+
+    def list_applications_for_posting(self, posting_id):
+        rows = [
+            r
+            for r in self.applications.values()
+            if str(r["posting_id"]) == posting_id
+        ]
+        # Best match first, oldest first within a tie — the ranked view's order.
+        return sorted(rows, key=lambda r: (-r["match_percentage"], r["created_at"]))
+
+    def count_applications_by_posting(self, posting_ids):
+        wanted = set(posting_ids)
+        return Counter(
+            str(r["posting_id"])
+            for r in self.applications.values()
+            if str(r["posting_id"]) in wanted
+        )
 
 
 class FakeGemini:
