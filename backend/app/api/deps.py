@@ -1,5 +1,5 @@
 """Shared FastAPI dependencies: auth, repository, per-module Gemini clients,
-and the per-user upload rate limit.
+and the upload rate limits.
 
 Tests override these with ``app.dependency_overrides`` to inject fakes, which
 is what keeps the module integration tests hermetic (no network, no keys).
@@ -7,7 +7,7 @@ is what keeps the module integration tests hermetic (no network, no keys).
 
 from functools import lru_cache
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -96,3 +96,44 @@ def enforce_upload_rate_limit(
             detail="Too many uploads in the last hour. Please wait and retry.",
         )
     return user
+
+
+@lru_cache
+def _apply_limiter() -> SlidingWindowRateLimiter:
+    settings = get_settings()
+    return SlidingWindowRateLimiter(
+        max_events=settings.apply_rate_limit_per_hour, window_seconds=3600
+    )
+
+
+def _client_ip(request: Request) -> str:
+    """Best-effort caller IP for throttling.
+
+    Behind a proxy (the deployed backend runs behind one) every request
+    arrives from the proxy's address, which would collapse all applicants into
+    a single bucket and lock out the endpoint for everyone, so the forwarded
+    client is preferred when present. That header is spoofable, which is
+    acceptable here precisely because this limiter guards Gemini spend rather
+    than access to anything — and the posting id in the key still bounds the
+    damage to one posting.
+    """
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def enforce_apply_rate_limit(posting_id: str, request: Request) -> None:
+    """Throttle the public apply endpoint, which has no user to key on.
+
+    Same ``SlidingWindowRateLimiter`` the signed-in uploads use — it takes an
+    arbitrary string key — keyed by posting + client IP instead of a user id,
+    so one noisy applicant can't exhaust a posting's Gemini budget and can't
+    affect any other posting either.
+    """
+    if not _apply_limiter().allow(f"{posting_id}:{_client_ip(request)}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many applications submitted from here. "
+            "Please wait a little and try again.",
+        )
