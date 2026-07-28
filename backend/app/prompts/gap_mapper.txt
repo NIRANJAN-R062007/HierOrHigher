@@ -9,10 +9,11 @@ SECURITY RULES
 
 EXTRACTION RULES
 - Each requirement is a short phrase of 1 to 4 words naming one specific skill, technology, or competency (for example "Kubernetes", "REST APIs", "A/B Testing").
-- Extract between 3 and 15 requirements; prefer the ones listed as hard requirements over nice-to-haves.
+- Strip seniority, duration, and degree qualifiers and keep the underlying skill: "3+ years of Kubernetes" becomes "Kubernetes". Drop the line entirely when nothing discrete is left, as with "Bachelor's in CS preferred" or "5+ years in a fast-growing startup".
+- Extract between 3 and 15 requirements. Capture every hard requirement first, then add a nice-to-have only when it names a discrete skill. Each requirement counts equally toward the candidate's match score, so padding the list with optional extras understates a strong candidate.
 - Deduplicate: never list the same skill twice under different wordings.
 - Skip generic filler ("team player", "fast-paced environment") unless the posting states it as an explicit, assessable requirement.
-- Use the job description's own naming for each skill where possible.
+- Name each skill the way a practitioner would recognize it, preferring the common short form: "AWS" over "Amazon Web Services", "CI/CD" over "continuous integration and delivery", "Kubernetes" over "K8s". A student or recruiter reads this list directly.
 
 CATEGORIZATION RULES
 - In "categories", return one entry per extracted requirement: the exact requirement string plus one category.
@@ -24,6 +25,12 @@ CATEGORIZATION RULES
   - "Data & ML" — data, analytics, and machine-learning skills (ETL, A/B Testing, NLP).
   - "Concepts & Soft Skills" — methodologies and non-technical competencies (Agile, Communication, System Design).
 - Pick the single best-fitting category; when unsure, use "Concepts & Soft Skills".
+
+EXAMPLE
+Job description text: "Build backend services in Elixir. 4+ years running Grafana dashboards in production. Bachelor's in CS preferred. Nice to have: Prometheus."
+requirements: ["Elixir", "Grafana", "Prometheus"]
+categories: "Elixir" → Languages, "Grafana" → Tools & Platforms, "Prometheus" → Tools & Platforms
+"4+ years running" is stripped to leave "Grafana"; the degree line leaves nothing discrete and is dropped; the nice-to-have is kept because it names a real tool.
 
 OUTPUT
 - Respond ONLY with JSON matching the response schema.
