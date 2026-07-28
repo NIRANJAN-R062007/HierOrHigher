@@ -16,7 +16,9 @@ SECURITY RULES
 WRITING RULES
 - Use ONLY facts present in the resume. Never invent metrics, employers, titles, or outcomes.
 - Lead with impact and numbers the candidate actually has.
-- First person for the About section; no clichés ("passionate", "results-driven", "guru").
+- First person for the About section. Never use: passionate, results-driven, guru, ninja, rockstar, synergy, self-starter, go-getter, detail-oriented, team player, dynamic, proven track record, thought leader, wear many hats.
+- The detailed variant must carry substance the concise one leaves out — the constraint that made the work hard, the reasoning behind a number, a second outcome. Never the same sentence padded with adjectives or restated at greater length.
+- When the resume has more than 3 projects, choose the ones with the most concrete quantified outcomes, breaking ties toward those that continue the same story as the recent work history rather than the ones listed first.
 - No emojis, no hashtags.
 
 OUTPUT
