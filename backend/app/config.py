@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     backend_cors_origins: str = "http://localhost:5173"
     max_upload_mb: int = 5
     upload_rate_limit_per_hour: int = 20
+    # Public apply links are unauthenticated, so their throttle is per
+    # (posting, client IP) and much tighter than the signed-in upload limit:
+    # a real applicant submits once, while an open endpoint that spends two
+    # Gemini keys per call is the obvious thing to point a script at.
+    apply_rate_limit_per_hour: int = 5
 
     @field_validator(
         "gemini_model",
@@ -60,6 +65,7 @@ class Settings(BaseSettings):
         "backend_cors_origins",
         "max_upload_mb",
         "upload_rate_limit_per_hour",
+        "apply_rate_limit_per_hour",
         mode="before",
     )
     @classmethod
