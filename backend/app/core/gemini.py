@@ -96,10 +96,17 @@ class GeminiClient:
             "max_output_tokens": max_output_tokens,
             "temperature": temperature,
         }
-        if "2.5" in self.model:
-            # Disable thinking on 2.5 models: cheaper, and keeps the token
-            # ceiling meaning "output tokens" rather than thinking budget.
-            config["thinking_config"] = {"thinking_budget": 0}
+        # Every caller of this method wants one deterministic JSON object, not
+        # reasoning, so thinking is always off. This is not just a cost knob:
+        # thinking tokens are drawn from ``max_output_tokens``, so a thinking
+        # model can spend the whole ceiling deliberating and return truncated
+        # JSON that fails schema validation. This was version-gated on "2.5"
+        # until the default model moved to gemini-3.5-flash, at which point the
+        # gate silently stopped matching — JD extraction then burned 979 of its
+        # 1024 tokens thinking, left 30 for an answer needing 293, and 502'd.
+        # Applies to any model that accepts a zero budget; "pro" tiers enforce a
+        # non-zero floor and would reject this outright rather than fail quietly.
+        config["thinking_config"] = {"thinking_budget": 0}
 
         last_error: Exception | None = None
         for attempt in (1, 2):

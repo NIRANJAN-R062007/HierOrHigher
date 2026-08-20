@@ -90,4 +90,40 @@ export const api = {
 
   // Analytics (read-only): cross-run aggregates powering the analytics page.
   getGapDistribution: () => request("/analytics/gap-distribution"),
+
+  // Recruiter side. Every call below is org-membership-gated server-side; a
+  // 404 from these means "not yours" as often as it means "not found", which
+  // is deliberate — org and posting ids must not be probeable.
+  createOrganization: (name) =>
+    request("/organizations", { method: "POST", body: { name } }),
+  listOrganizations: () => request("/organizations"),
+  listOrgMembers: (orgId) => request(`/organizations/${orgId}/members`),
+  inviteOrgMember: (orgId, email, role = "member") =>
+    request(`/organizations/${orgId}/members`, {
+      method: "POST",
+      body: { email, role },
+    }),
+
+  createJobPosting: (orgId, { title, description, status }) =>
+    request("/job-postings", {
+      method: "POST",
+      body: { org_id: orgId, title, description, status },
+    }),
+  listJobPostings: (orgId) => request(`/job-postings?org_id=${orgId}`),
+  getJobPosting: (postingId) => request(`/job-postings/${postingId}`),
+  updateJobPosting: (postingId, changes) =>
+    request(`/job-postings/${postingId}`, { method: "PATCH", body: changes }),
+  listApplications: (postingId) =>
+    request(`/job-postings/${postingId}/applications`),
+
+  // Public apply link — the only calls here that work with no session at all.
+  // They still go through `request`, which simply finds no token to attach.
+  getPublicPosting: (postingId) => request(`/apply/${postingId}`),
+  submitApplication(postingId, file, { name = "", email = "" } = {}) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("email", email);
+    return request(`/apply/${postingId}`, { method: "POST", formData });
+  },
 };

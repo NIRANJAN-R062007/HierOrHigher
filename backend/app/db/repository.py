@@ -1,16 +1,25 @@
 """Repository over Supabase tables — the single place the app touches the DB.
 
-Every read is scoped to the authenticated user (directly via ``user_id`` or
-through the owning resume), mirroring the RLS policies in
-``supabase/migrations``. The ``get_*_by_hash`` methods implement the
-check-cache-before-Gemini strategy (spec 3.3): callers must consult them
-before spending any module's Gemini quota.
+Every read is scoped to the caller's identity, mirroring the RLS policies in
+``supabase/migrations``. On the student side that identity is the
+authenticated user (directly via ``user_id`` or through the owning resume);
+on the recruiter side it is org membership, which the service layer resolves
+once and then passes down as an ``org_id``. The ``get_*_by_hash`` methods
+implement the check-cache-before-Gemini strategy (spec 3.3): callers must
+consult them before spending any module's Gemini quota.
+
+The recruiter tables have no owner column the client could be trusted on —
+``candidates``/``applications`` have no ``auth.uid()`` at all — so their
+methods take the already-verified ``org_id``/``posting_id`` and never a raw
+user-supplied scope.
 
 Services depend on this class through FastAPI dependencies, so integration
 tests substitute an in-memory implementation with the same interface.
 """
 
 import logging
+from collections import Counter
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +27,7 @@ RESUME_BUCKET = "resumes"
 
 
 class SupabaseRepository:
-    """Data access for all six tables plus resume file storage."""
+    """Data access for every table plus resume file storage."""
 
     def __init__(self, client):
         self.client = client
@@ -246,3 +255,241 @@ class SupabaseRepository:
 
     def insert_profile_draft(self, row: dict) -> dict:
         return self.client.table("profile_drafts").insert(row).execute().data[0]
+
+    # -- organizations & members (recruiter side) ------------------------------
+
+    def insert_organization(self, row: dict) -> dict:
+        return self.client.table("organizations").insert(row).execute().data[0]
+
+    def get_organization(self, org_id: str) -> dict | None:
+        """Fetch one org by id. Unscoped by design — every caller has already
+        proved membership via ``get_org_membership``."""
+        return self._one(
+            self.client.table("organizations").select("*").eq("id", org_id)
+        )
+
+    def list_organizations_by_ids(self, org_ids: list[str]) -> list[dict]:
+        """Hydrate the orgs behind a caller's membership rows in one query."""
+        if not org_ids:
+            return []
+        return (
+            self.client.table("organizations")
+            .select("*")
+            .in_("id", org_ids)
+            .execute()
+            .data
+        )
+
+    def list_memberships_for_user(self, user_id: str, email: str) -> list[dict]:
+        """Every membership belonging to this person, newest first.
+
+        Two lookups, not one: a claimed row matches on ``user_id``, while an
+        invite sent before they ever signed up has a null ``user_id`` and is
+        only findable by the email it was addressed to (which is matched
+        against their verified session email, never a client-supplied one).
+        """
+        claimed = (
+            self.client.table("org_members")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+            .data
+        )
+        invited = []
+        if email:
+            invited = (
+                self.client.table("org_members")
+                .select("*")
+                .is_("user_id", "null")
+                .eq("email", email.lower())
+                .execute()
+                .data
+            )
+        rows = claimed + [r for r in invited if r["id"] not in {c["id"] for c in claimed}]
+        return sorted(rows, key=lambda r: r["created_at"], reverse=True)
+
+    def get_org_membership(
+        self, org_id: str, user_id: str, email: str
+    ) -> dict | None:
+        """The caller's membership row for one org, or None if not a member."""
+        return next(
+            (
+                row
+                for row in self.list_memberships_for_user(user_id, email)
+                if str(row["org_id"]) == org_id
+            ),
+            None,
+        )
+
+    def list_org_members(self, org_id: str) -> list[dict]:
+        return (
+            self.client.table("org_members")
+            .select("*")
+            .eq("org_id", org_id)
+            .order("created_at")
+            .execute()
+            .data
+        )
+
+    def get_org_member_by_email(self, org_id: str, email: str) -> dict | None:
+        """Invite idempotency: re-inviting an existing member is a no-op."""
+        return self._one(
+            self.client.table("org_members")
+            .select("*")
+            .eq("org_id", org_id)
+            .eq("email", email.lower())
+        )
+
+    def insert_org_member(self, row: dict) -> dict:
+        return self.client.table("org_members").insert(row).execute().data[0]
+
+    def claim_org_membership(self, membership_id: str, user_id: str) -> dict:
+        """Bind an email-only invite to the auth user who just proved that
+        email, so later lookups match on ``user_id`` directly."""
+        return (
+            self.client.table("org_members")
+            .update({"user_id": user_id})
+            .eq("id", membership_id)
+            .execute()
+            .data[0]
+        )
+
+    # -- job postings (recruiter side) -----------------------------------------
+
+    def insert_job_posting(self, row: dict) -> dict:
+        return self.client.table("job_postings").insert(row).execute().data[0]
+
+    def get_job_posting(self, posting_id: str) -> dict | None:
+        """Fetch one posting by id, unscoped.
+
+        Deliberately not org-scoped: the public apply route resolves a posting
+        with no caller identity at all. Authenticated callers must check
+        ``row["org_id"]`` against their membership — which is exactly what
+        ``org_service.require_posting_access`` does.
+        """
+        return self._one(
+            self.client.table("job_postings").select("*").eq("id", posting_id)
+        )
+
+    def list_job_postings(self, org_id: str) -> list[dict]:
+        return (
+            self.client.table("job_postings")
+            .select("*")
+            .eq("org_id", org_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        )
+
+    def update_job_posting(self, posting_id: str, updates: dict) -> dict:
+        return (
+            self.client.table("job_postings")
+            .update({**updates, "updated_at": datetime.now(timezone.utc).isoformat()})
+            .eq("id", posting_id)
+            .execute()
+            .data[0]
+        )
+
+    def cache_posting_requirements(
+        self, posting_id: str, requirements: list[str], requirements_hash: str
+    ) -> dict:
+        """Store the JD requirements just extracted for this posting.
+
+        Separate from ``update_job_posting`` because this is a cache fill, not
+        an edit: it must not move ``updated_at``, which recruiters read as
+        "when the posting last changed"."""
+        return (
+            self.client.table("job_postings")
+            .update(
+                {
+                    "parsed_requirements": requirements,
+                    "requirements_hash": requirements_hash,
+                }
+            )
+            .eq("id", posting_id)
+            .execute()
+            .data[0]
+        )
+
+    # -- candidates (recruiter side; no auth.uid() owner) ----------------------
+
+    def get_candidate_by_hash(self, org_id: str, content_hash: str) -> dict | None:
+        """Cache lookup: the same resume submitted twice to one org is one
+        candidate, and is parsed by Gemini only once."""
+        return self._one(
+            self.client.table("candidates")
+            .select("*")
+            .eq("org_id", org_id)
+            .eq("content_hash", content_hash)
+        )
+
+    def insert_candidate(self, row: dict) -> dict:
+        return self.client.table("candidates").insert(row).execute().data[0]
+
+    def update_candidate(self, candidate_id: str, updates: dict) -> dict:
+        return (
+            self.client.table("candidates")
+            .update(updates)
+            .eq("id", candidate_id)
+            .execute()
+            .data[0]
+        )
+
+    def list_candidates_by_ids(self, candidate_ids: list[str]) -> list[dict]:
+        if not candidate_ids:
+            return []
+        return (
+            self.client.table("candidates")
+            .select("*")
+            .in_("id", candidate_ids)
+            .execute()
+            .data
+        )
+
+    # -- applications (recruiter side; no auth.uid() owner) --------------------
+
+    def get_application(self, posting_id: str, candidate_id: str) -> dict | None:
+        return self._one(
+            self.client.table("applications")
+            .select("*")
+            .eq("posting_id", posting_id)
+            .eq("candidate_id", candidate_id)
+        )
+
+    def insert_application(self, row: dict) -> dict:
+        return self.client.table("applications").insert(row).execute().data[0]
+
+    def update_application(self, application_id: str, updates: dict) -> dict:
+        return (
+            self.client.table("applications")
+            .update(updates)
+            .eq("id", application_id)
+            .execute()
+            .data[0]
+        )
+
+    def list_applications_for_posting(self, posting_id: str) -> list[dict]:
+        """One posting's applicants, best match first — the screening view."""
+        return (
+            self.client.table("applications")
+            .select("*")
+            .eq("posting_id", posting_id)
+            .order("match_percentage", desc=True)
+            .order("created_at")
+            .execute()
+            .data
+        )
+
+    def count_applications_by_posting(self, posting_ids: list[str]) -> dict[str, int]:
+        """Applicant counts for a whole posting list in one query, so the
+        postings page doesn't fan out into one count per row."""
+        if not posting_ids:
+            return {}
+        rows = (
+            self.client.table("applications")
+            .select("posting_id")
+            .in_("posting_id", posting_ids)
+            .execute()
+            .data
+        )
+        return Counter(str(row["posting_id"]) for row in rows)

@@ -1,13 +1,26 @@
 """Module 5.2 — Gap-to-Job Mapper.
 
-Compares the ALREADY-PARSED resume (module 5.1's stored output — this module
-never re-parses, spec 12) against a pasted job description using
-embedding-based semantic similarity rather than keyword matching.
-Uses GEMINI_API_KEY_GAP_MAPPER for both requirement extraction and
-embeddings. Caches by sha256(resume hash + JD hash) before any Gemini call.
+Compares an ALREADY-PARSED resume (module 5.1's stored output — this module
+never re-parses, spec 12) against a job description using embedding-based
+semantic similarity rather than keyword matching. Uses
+GEMINI_API_KEY_GAP_MAPPER for both requirement extraction and embeddings.
+
+Two callers, one matching core. ``match_resume_to_jd`` is the whole
+comparison — requirement extraction plus cosine classification — expressed
+purely in terms of parsed resume JSON and JD text, with no notion of who owns
+either. On top of it sit:
+
+* ``build_gap_report`` — the student-facing flow, which fetches the resume by
+  ``(user_id, resume_id)`` and caches per user.
+* ``application_service`` — the recruiter flow, where a candidate has no
+  ``auth.uid()`` at all and the JD comes from a job posting.
+
+Both cache by content hash before reaching Gemini; only the cache's *location*
+differs (``gap_reports`` vs ``applications``), never the matching itself.
 """
 
 import math
+from typing import NamedTuple
 
 from app.core.hashing import combined_hash, sha256_text
 from app.core.prompts import load_prompt, wrap_untrusted
@@ -89,6 +102,67 @@ def _group_by_category(
     return grouped or None
 
 
+class MatchOutcome(NamedTuple):
+    """One resume scored against one JD — the matching core's whole result.
+
+    ``requirements`` is echoed back so callers can persist the extraction they
+    just paid Gemini for and pass it in as ``cached_requirements`` next time.
+    """
+
+    requirements: list[str]
+    matched: list[str]
+    missing: list[str]
+    match_percentage: int
+    categories: dict | None
+
+
+def match_resume_to_jd(
+    parsed_json: dict,
+    jd_text: str,
+    gemini,
+    *,
+    cached_requirements: list[str] | None = None,
+) -> MatchOutcome:
+    """Score parsed resume JSON against JD text. The matching core.
+
+    Inputs: a parsed resume (module 5.1's ``parsed_json``, whoever produced
+    it), the JD text, the gap_mapper Gemini client
+    (GEMINI_API_KEY_GAP_MAPPER), and optionally this JD's already-extracted
+    requirements. Knows nothing about users, resumes, postings, or candidates
+    — callers own fetching, caching, and persistence.
+
+    Passing ``cached_requirements`` (including an empty list) skips
+    requirement extraction entirely, saving one Gemini call. It also means no
+    category tags are available for that run, since the model produces them
+    alongside the extraction — the report then falls back to the flat
+    matched/missing view.
+    """
+    skill_to_category: dict[str, str] = {}
+    requirements = cached_requirements
+    if requirements is None:
+        prompt = load_prompt("gap_mapper") + "\n\n" + wrap_untrusted(jd_text)
+        extraction: JDRequirements = gemini.generate_structured(
+            prompt, JDRequirements, max_output_tokens=1024, temperature=0.0
+        )
+        requirements = extraction.requirements
+        skill_to_category = {
+            _normalize(item.skill): item.category for item in extraction.categories
+        }
+
+    skills = _resume_skill_terms(parsed_json)
+    matched, missing = _classify_requirements(requirements, skills, gemini)
+    match_percentage = (
+        round(100 * len(matched) / len(requirements)) if requirements else 0
+    )
+    return MatchOutcome(
+        requirements=requirements,
+        matched=matched,
+        missing=missing,
+        match_percentage=match_percentage,
+        categories=_group_by_category(matched, missing, skill_to_category),
+    )
+
+
 def _response_from_row(row: dict, resume_id: str, *, cached: bool) -> GapReportResponse:
     return GapReportResponse(
         gap_report_id=str(row["id"]),
@@ -122,9 +196,9 @@ def build_gap_report(
     module 5.1 is never re-run. Returns the cached report when this exact
     resume+JD content pair was mapped before.
 
-    Every mapping runs the Gemini pipeline: extract the JD's requirements,
-    embed them alongside the resume's skills, and match by cosine similarity.
-    On a cache hit for this exact resume+JD pair, no Gemini call is spent.
+    Every mapping runs ``match_resume_to_jd`` — the same core the recruiter
+    side scores candidates with. On a cache hit for this exact resume+JD pair,
+    no Gemini call is spent.
     """
     resume = repo.get_resume(user_id, resume_id)
     if resume is None:
@@ -137,45 +211,37 @@ def build_gap_report(
     if cached_row is not None:
         return _response_from_row(cached_row, resume_id, cached=True)
 
-    # Category tags are produced alongside requirement extraction, so they're
-    # available only on a fresh JD. For a JD already extracted (cache hit) we
-    # skip re-spending Gemini, and the report falls back to the flat view.
-    skill_to_category: dict[str, str] = {}
+    # A JD this user has mapped before already has its requirements stored, so
+    # the core is told to skip extraction. Category tags come out of that same
+    # extraction call, so a re-used JD has none and falls back to the flat view.
     jd_row = repo.get_jd_by_hash(user_id, jd_hash)
+    outcome = match_resume_to_jd(
+        resume["parsed_json"],
+        jd_text,
+        gemini,
+        cached_requirements=(jd_row["parsed_requirements"] or []) if jd_row else None,
+    )
+
     if jd_row is None:
-        prompt = load_prompt("gap_mapper") + "\n\n" + wrap_untrusted(jd_text)
-        extraction: JDRequirements = gemini.generate_structured(
-            prompt, JDRequirements, max_output_tokens=1024, temperature=0.0
-        )
-        skill_to_category = {
-            _normalize(item.skill): item.category for item in extraction.categories
-        }
         jd_row = repo.insert_job_description(
             {
                 "user_id": user_id,
                 "raw_text": jd_text,
                 "content_hash": jd_hash,
-                "parsed_requirements": extraction.requirements,
+                "parsed_requirements": outcome.requirements,
             }
         )
-    requirements: list[str] = jd_row["parsed_requirements"] or []
-
-    skills = _resume_skill_terms(resume["parsed_json"])
-    matched, missing = _classify_requirements(requirements, skills, gemini)
-    match_percentage = (
-        round(100 * len(matched) / len(requirements)) if requirements else 0
-    )
 
     row = repo.insert_gap_report(
         {
             "resume_id": resume_id,
             "jd_id": jd_row["id"],
             "content_hash": cache_key,
-            "matched": matched,
-            "missing": missing,
-            "match_percentage": match_percentage,
+            "matched": outcome.matched,
+            "missing": outcome.missing,
+            "match_percentage": outcome.match_percentage,
             "source": "gemini",
-            "categories": _group_by_category(matched, missing, skill_to_category),
+            "categories": outcome.categories,
         }
     )
     return _response_from_row(row, resume_id, cached=False)

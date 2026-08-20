@@ -6,8 +6,6 @@
 
 Upload one resume, paste one job description — and get an ATS score, a semantic skills-gap map, a tailored mock interview, and rewritten LinkedIn/portfolio copy, all on a single dashboard.
 
-[![Live app](https://img.shields.io/badge/Live_app-hierorhigher.vercel.app-000000?style=flat-square&logo=vercel&logoColor=white)](https://hierorhigher.vercel.app/)
-
 ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
@@ -36,6 +34,20 @@ Every module result is persisted in Supabase and keyed by content hash, so reloa
 | 4 | **LinkedIn / Portfolio Optimizer** | Headline, About section, and outcome-oriented project rewrites, each in Concise and Detailed tone variants. |
 
 Beyond the per-resume modules: a **cross-run analytics dashboard** — a histogram of your match percentages across every job description you've mapped — and **Google OAuth** sign-in alongside email/password.
+
+## 🧑‍💼 For recruiters — the hiring side
+
+The same engine, pointed the other way. A recruiter creates an **organization**, posts a role, and shares its **public apply link**. Candidates open that link with **no account**: they attach a résumé, submit, and are done — no login, no dashboard, no profile to maintain. Each submission is parsed and scored against the posting's description, and the hiring team gets a **screening list ranked by match percentage**, with matched and missing skills per applicant.
+
+It is a closed ATS, not a marketplace, and the boundaries are enforced rather than assumed:
+
+- **Candidates are never authenticated.** No Supabase auth user is created for them, and their rows carry no `auth.uid()` at all — `candidates` and `applications` have RLS enabled with *no policies*, so direct client access is default-denied and every read goes through an org-gated backend route.
+- **Candidates are visible only to the org they applied to.** There is no cross-org search, no shared candidate pool, and a posting id grants nothing on its own — access is re-derived from org membership on every request.
+- **Scores are recruiter-only.** The apply page's confirmation deliberately carries no match percentage and no skill breakdown.
+- **The same matching core** scores a candidate against a posting as scores a student against a pasted JD — one implementation (`match_resume_to_jd`), read from two sides.
+- **The public endpoint is throttled** per posting + client IP with the same sliding-window limiter the signed-in uploads use, and gets identical upload validation: magic-byte content-type checks, a size cap, and the same garbled-parse guard.
+
+Recruiters are ordinary accounts — org membership is the only thing that makes one a recruiter, so the hiring console lives at `/hiring` behind the existing sign-in.
 
 ## 🔄 How it works
 
@@ -82,6 +94,24 @@ All routes are prefixed with `/api` and require an authenticated Supabase sessio
 | `POST /interview-sets` | Generate a mock interview set |
 | `POST /profile-drafts` | Generate LinkedIn / portfolio rewrites |
 | `GET /analytics/gap-distribution` | Match-percentage distribution across all your gap reports |
+
+Recruiter side — authenticated and gated on membership of the org that owns the resource:
+
+| Method & path | Purpose |
+|---|---|
+| `POST /organizations` | Create an org (caller becomes its first admin) |
+| `GET /organizations` | Orgs the caller belongs to |
+| `GET`/`POST /organizations/{id}/members` | Read the roster; invite a teammate by email (admin-only) |
+| `POST`/`GET /job-postings` | Create a posting; list one org's postings |
+| `GET`/`PATCH /job-postings/{id}` | Read a posting; edit it or close it |
+| `GET /job-postings/{id}/applications` | Applicants ranked by match, with matched/missing skills |
+
+And the only unauthenticated routes in the app, behind a posting's public apply link:
+
+| Method & path | Purpose |
+|---|---|
+| `GET /apply/{posting_id}` | The role and org name, for an open posting only |
+| `POST /apply/{posting_id}` | Submit a résumé — no account, no session, rate-limited per posting + IP |
 
 Each module also exposes read-only history routes (`GET /{module}?resume_id=…` and `GET /{module}/{id}`) that replay past runs straight from Supabase with no Gemini call. Interactive OpenAPI docs are served at `/docs`.
 

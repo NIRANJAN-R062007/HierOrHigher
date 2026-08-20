@@ -10,9 +10,12 @@ SECURITY RULES
 
 EXTRACTION RULES
 - Extract only information actually present in the text; use empty strings or empty arrays for anything absent. Never invent details.
-- skills: individual skills as short deduplicated strings, exactly as the candidate names them.
+- Multi-column resumes extract out of reading order, so a sidebar line can land mid-sentence. Reassemble each entry by context — a bullet belongs to the nearest job title above it, a stray run of comma-separated technologies belongs in skills — rather than trusting line order.
+- skills: individual skills as short deduplicated strings, named as the candidate names them — except that one skill written several ways ("ReactJS", "React.js", "React") must appear once, under its most common form.
+- Dates: normalize to "Mon YYYY", or "YYYY" when only a year is given. Use "Present" for a role still held, however the resume words it ("Current", "Ongoing", "05/2023 –"). Leave a date empty rather than inferring one the resume does not state.
 - experience bullets: preserve the candidate's wording (whitespace cleanup only).
 - human_score.value must reflect genuine quality — do not inflate. 90+ exceptional, 70-89 strong, 50-69 average, below 50 weak.
+- Calibrate against these bullets: "Responsible for maintaining the inventory sync service" is 60-level — a duty, no scale, no result. "Cut inventory sync failures from 6% to 0.4% by batching writes, across 40k daily updates" is 90-level — action, metric, and outcome in one line.
 - human_score.breakdown observations must be concrete and actionable, each under 20 words.
 
 OUTPUT
