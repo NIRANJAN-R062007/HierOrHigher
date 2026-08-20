@@ -6,8 +6,6 @@
 
 Upload one resume, paste one job description — and get an ATS score, a semantic skills-gap map, a tailored mock interview, and rewritten LinkedIn/portfolio copy, all on a single dashboard.
 
-[![Live app](https://img.shields.io/badge/Live_app-hierorhigher.vercel.app-000000?style=flat-square&logo=vercel&logoColor=white)](https://hierorhigher.vercel.app/)
-
 ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
