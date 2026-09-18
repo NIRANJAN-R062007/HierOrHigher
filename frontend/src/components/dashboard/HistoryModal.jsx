@@ -150,6 +150,7 @@ export default function HistoryModal({
   activeResumeId,
   onSwitchResume,
   onClose,
+  initialGapReportId,
 }) {
   const [lists, setLists] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -208,6 +209,15 @@ export default function HistoryModal({
     },
     [resumeId],
   );
+
+  // Job Radar rows jump straight into this modal's existing gap detail view
+  // instead of a separate one — the history list load still runs in the
+  // background beneath it.
+  useEffect(() => {
+    if (initialGapReportId && resumeId) {
+      openDetail("gap", initialGapReportId);
+    }
+  }, [initialGapReportId, resumeId, openDetail]);
 
   const detailTitle = {
     gap: "Gap map",

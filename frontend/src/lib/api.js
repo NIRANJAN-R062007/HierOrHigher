@@ -72,6 +72,11 @@ export const api = {
       method: "POST",
       body: { resume_id: resumeId },
     }),
+  createJobRadarSearch: (resumeId, role, location) =>
+    request("/job-radar", {
+      method: "POST",
+      body: { resume_id: resumeId, role, location },
+    }),
 
   // History (read-only): list a resume's past runs per module, then fetch one
   // in full when the user opens it. Lists are lightweight; details carry the
@@ -87,6 +92,10 @@ export const api = {
     request(`/profile-drafts?resume_id=${resumeId}`),
   getProfileDraft: (id, resumeId) =>
     request(`/profile-drafts/${id}?resume_id=${resumeId}`),
+  listJobRadarSearches: (resumeId) =>
+    request(`/job-radar?resume_id=${resumeId}`),
+  getJobRadarSearch: (id, resumeId) =>
+    request(`/job-radar/${id}?resume_id=${resumeId}`),
 
   // Analytics (read-only): cross-run aggregates powering the analytics page.
   getGapDistribution: () => request("/analytics/gap-distribution"),

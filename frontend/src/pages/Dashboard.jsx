@@ -4,6 +4,7 @@ import ErrorState from "../components/dashboard/ErrorState";
 import GapSection from "../components/dashboard/GapSection";
 import HistoryModal from "../components/dashboard/HistoryModal";
 import InterviewSection from "../components/dashboard/InterviewSection";
+import JobRadarSection from "../components/dashboard/JobRadarSection";
 import ProfileSection from "../components/dashboard/ProfileSection";
 import ResumeSwitcher from "../components/dashboard/ResumeSwitcher";
 import ScoreSection from "../components/dashboard/ScoreSection";
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [booting, setBooting] = useState(true);
   const [bootError, setBootError] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyGapReportId, setHistoryGapReportId] = useState(null);
 
   const [resumes, setResumes] = useState([]);
   const [resume, setResume] = useState(null);
@@ -94,11 +96,17 @@ export default function Dashboard() {
     setProfileDraft(await api.createProfileDraft(resume.resume_id));
   });
 
+  const openGapReportFromRadar = (gapReportId) => {
+    setHistoryGapReportId(gapReportId);
+    setHistoryOpen(true);
+  };
+
   const sections = [
     { id: "resume-score", label: "Resume score", ready: Boolean(resume) },
     { id: "gap-map", label: "Gap map", ready: Boolean(gap) },
     { id: "interview", label: "Mock interview", ready: Boolean(interviewSet) },
     { id: "profile", label: "Profile drafts", ready: Boolean(profileDraft) },
+    { id: "job-radar", label: "Job Radar", ready: false },
   ];
 
   return (
@@ -220,6 +228,16 @@ export default function Dashboard() {
                   onGenerate={profileAction.run}
                 />
               </section>
+
+              <section id="job-radar" aria-labelledby="job-radar-h" className="scroll-mt-20">
+                <h2 id="job-radar-h" className="font-display text-2xl font-semibold text-paper-50">
+                  5 · Job Radar
+                </h2>
+                <p className="mb-4 mt-1 text-sm text-paper-200/70">
+                  The same gap analysis, run automatically against live postings.
+                </p>
+                <JobRadarSection resume={resume} onOpenGapReport={openGapReportFromRadar} />
+              </section>
             </>
           )}
         </main>
@@ -231,7 +249,11 @@ export default function Dashboard() {
           resumes={resumes}
           activeResumeId={resume.resume_id}
           onSwitchResume={switchResume.run}
-          onClose={() => setHistoryOpen(false)}
+          initialGapReportId={historyGapReportId}
+          onClose={() => {
+            setHistoryOpen(false);
+            setHistoryGapReportId(null);
+          }}
         />
       )}
     </div>
