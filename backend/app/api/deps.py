@@ -16,6 +16,7 @@ from app.core.gemini import GeminiClient
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.db.repository import SupabaseRepository
 from app.db.supabase_client import get_supabase
+from app.services.serpapi_client import SerpApiClient
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -76,6 +77,11 @@ def get_interview_generator_gemini() -> GeminiClient:
 def get_profile_optimizer_gemini() -> GeminiClient:
     """Gemini client using GEMINI_API_KEY_PROFILE_OPTIMIZER (module 5.4)."""
     return GeminiClient("profile_optimizer")
+
+
+def get_serpapi_client() -> SerpApiClient:
+    """SerpApi client using SERPAPI_API_KEY (Job Radar)."""
+    return SerpApiClient()
 
 
 @lru_cache

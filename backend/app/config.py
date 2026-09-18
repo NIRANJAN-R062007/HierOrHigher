@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     max_upload_mb: int = 5
     upload_rate_limit_per_hour: int = 20
 
+    # Job Radar — SerpApi (google_jobs engine). Not in REQUIRED_ENV_VARS: a
+    # missing key surfaces as a 502 on that one route rather than blocking
+    # boot for the rest of the app.
+    serpapi_api_key: str = ""
+    serpapi_timeout_seconds: float = 20.0
+
     @field_validator(
         "gemini_model",
         "gemini_embedding_model",
@@ -60,6 +66,7 @@ class Settings(BaseSettings):
         "backend_cors_origins",
         "max_upload_mb",
         "upload_rate_limit_per_hour",
+        "serpapi_timeout_seconds",
         mode="before",
     )
     @classmethod
