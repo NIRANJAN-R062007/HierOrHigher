@@ -15,6 +15,7 @@ Upload one resume, paste one job description — and get an ATS score, a semanti
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
+![SerpApi](https://img.shields.io/badge/SerpApi-6C47FF?style=flat-square&logoColor=white)
 
 </div>
 
@@ -34,6 +35,7 @@ Every module result is persisted in Supabase and keyed by content hash, so reloa
 | 2 | **Gap-to-Job Mapper** | Embedding-based (semantic, not keyword) comparison of the parsed resume against the JD: matched skills, missing skills, match percentage, and a skill-gap radar of coverage by category. |
 | 3 | **Mock Interview Generator** | 8–10 questions tagged Technical / Behavioral / Role-Fit, written from the candidate's actual projects, history, and identified gaps. |
 | 4 | **LinkedIn / Portfolio Optimizer** | Headline, About section, and outcome-oriented project rewrites, each in Concise and Detailed tone variants. |
+| 5 | **Job Radar** | Auto-discovers live postings via SerpApi and runs each through the existing Gap-to-Job Mapper, producing a ranked shortlist instead of one manual paste. |
 
 Beyond the per-resume modules: a **cross-run analytics dashboard** — a histogram of your match percentages across every job description you've mapped — and **Google OAuth** sign-in alongside email/password.
 
@@ -42,6 +44,7 @@ Beyond the per-resume modules: a **cross-run analytics dashboard** — a histogr
 ```mermaid
 flowchart LR
     A["📄 Resume + 📋 Job description"] --> B["Resume Parser + Score"]
+    S["🔎 SerpApi live postings"] --> C
     B --> C["Gap-to-Job Mapper"]
     B --> D["Mock Interview Generator"]
     B --> E["LinkedIn / Portfolio Optimizer"]
@@ -81,6 +84,9 @@ All routes are prefixed with `/api` and require an authenticated Supabase sessio
 | `POST /gap-reports` | Map a job description against a resume |
 | `POST /interview-sets` | Generate a mock interview set |
 | `POST /profile-drafts` | Generate LinkedIn / portfolio rewrites |
+| `POST /job-radar` | Search live postings via SerpApi and score each against a resume through the Gap Mapper |
+| `GET /job-radar` | List a resume's past Job Radar searches |
+| `GET /job-radar/{id}` | Replay one past Job Radar search in full |
 | `GET /analytics/gap-distribution` | Match-percentage distribution across all your gap reports |
 
 Each module also exposes read-only history routes (`GET /{module}?resume_id=…` and `GET /{module}/{id}`) that replay past runs straight from Supabase with no Gemini call. Interactive OpenAPI docs are served at `/docs`.
@@ -90,13 +96,13 @@ Each module also exposes read-only history routes (`GET /{module}?resume_id=…`
 ```
 backend/
   app/
-    api/routes/     # one route file per feature area (health, resumes, gap, interviews, profiles, analytics)
-    api/deps.py     # auth, repository, per-module Gemini clients, rate limit
+    api/routes/     # one route file per feature area (health, resumes, gap, interviews, profiles, analytics, job_radar)
+    api/deps.py     # auth, repository, per-module Gemini clients, SerpApi client, rate limit
     core/           # Gemini wrapper (timeout + retry-once), hashing, file validation, prompt loader
     db/             # Supabase client + repository (the only DB touchpoint)
-    models/         # Pydantic contracts — the exact request/response shapes
+    models/         # Pydantic contracts — the exact request/response shapes (incl. job_radar.py)
     prompts/        # versioned Gemini prompt files, one per module (never inline strings)
-    services/       # one service per module's Gemini-calling logic + rule-based ATS scorer
+    services/       # one service per module's Gemini-calling logic + rule-based ATS scorer + serpapi_client.py
   tests/            # integration tests per module, driven by the sample dataset
 supabase/migrations/  # SQL migrations — RLS enabled in the same file as each CREATE TABLE
 scripts/seed.py       # loads the sample dataset for an instant, Gemini-free demo
