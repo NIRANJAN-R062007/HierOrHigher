@@ -1,0 +1,35 @@
+{
+  "search_metadata": {
+    "status": "Success"
+  },
+  "jobs_results": [
+    {
+      "title": "Senior Backend Engineer",
+      "company_name": "CloudCore",
+      "location": "Remote",
+      "description": "Senior Backend Engineer — CloudCore (Remote)\n\nCloudCore builds the control plane for multi-cloud deployments. We are hiring a Senior Backend Engineer to own core platform services.\n\nWhat you will do:\n- Design and operate high-availability APIs consumed by thousands of engineering teams\n- Own PostgreSQL schema design and query performance for the platform's metadata store\n- Evolve our GraphQL gateway that fronts internal service APIs\n- Run workloads on Kubernetes and manage infrastructure with Terraform\n\nRequirements:\n- 4+ years building backend services in Python\n- Deep experience designing and versioning REST APIs\n- Production PostgreSQL experience, including performance tuning\n- Hands-on Kubernetes experience (deployment, scaling, debugging)\n- Experience with GraphQL schema design and federation\n- Infrastructure-as-code experience with Terraform",
+      "share_link": "https://example.com/jobs/cloudcore-backend-1"
+    },
+    {
+      "title": "Senior Backend Engineer (re-posted)",
+      "company_name": "CloudCore",
+      "location": "Remote",
+      "description": "Senior Backend Engineer — CloudCore (Remote)\n\nCloudCore builds the control plane for multi-cloud deployments. We are hiring a Senior Backend Engineer to own core platform services.\n\nWhat you will do:\n- Design and operate high-availability APIs consumed by thousands of engineering teams\n- Own PostgreSQL schema design and query performance for the platform's metadata store\n- Evolve our GraphQL gateway that fronts internal service APIs\n- Run workloads on Kubernetes and manage infrastructure with Terraform\n\nRequirements:\n- 4+ years building backend services in Python\n- Deep experience designing and versioning REST APIs\n- Production PostgreSQL experience, including performance tuning\n- Hands-on Kubernetes experience (deployment, scaling, debugging)\n- Experience with GraphQL schema design and federation\n- Infrastructure-as-code experience with Terraform",
+      "share_link": "https://example.com/jobs/cloudcore-backend-1"
+    },
+    {
+      "title": "Product Data Analyst",
+      "company_name": "Metricly",
+      "location": "Pune, India",
+      "description": "Product Data Analyst — Metricly (Hybrid, Pune)\n\nMetricly is a product analytics platform. We're hiring a Product Data Analyst to own experiment analysis and self-serve reporting for our customers' product teams.\n\nWhat you will do:\n- Model product event data with dbt into clean, documented marts\n- Build and maintain Power BI dashboards for customer-facing reporting\n- Design and analyze A/B tests with our data science team\n\nRequirements:\n- Advanced SQL for analytics across large event datasets\n- Python for data wrangling and statistical analysis\n- Tableau experience for internal dashboarding\n- Power BI experience for customer-facing report packs\n- dbt experience for analytics engineering and data modeling",
+      "apply_options": [
+        { "title": "Apply on company site", "link": "https://example.com/jobs/metricly-analyst-1" }
+      ]
+    },
+    {
+      "title": "Warehouse Associate",
+      "company_name": "Ghost Logistics",
+      "location": "Nowhere"
+    }
+  ]
+}
