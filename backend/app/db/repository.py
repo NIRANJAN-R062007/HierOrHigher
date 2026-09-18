@@ -246,3 +246,28 @@ class SupabaseRepository:
 
     def insert_profile_draft(self, row: dict) -> dict:
         return self.client.table("profile_drafts").insert(row).execute().data[0]
+
+    # -- job radar searches (Job Radar) --------------------------------------
+
+    def insert_job_radar_search(self, row: dict) -> dict:
+        return self.client.table("job_radar_searches").insert(row).execute().data[0]
+
+    def list_job_radar_searches(self, resume_id: str) -> list[dict]:
+        """Every past Job Radar search for a resume, newest first."""
+        return (
+            self.client.table("job_radar_searches")
+            .select("id, role, location, gap_report_ids, searched_at")
+            .eq("resume_id", resume_id)
+            .order("searched_at", desc=True)
+            .execute()
+            .data
+        )
+
+    def get_job_radar_search(self, resume_id: str, search_id: str) -> dict | None:
+        """One past Job Radar search in full, scoped to its owning resume."""
+        return self._one(
+            self.client.table("job_radar_searches")
+            .select("*")
+            .eq("resume_id", resume_id)
+            .eq("id", search_id)
+        )

@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 
 from app.api import deps
 from app.main import app
-from tests.fakes import FakeGemini, FakeRepository
+from tests.fakes import FakeGemini, FakeRepository, FakeSerpApi
 
 DATASET_PATH = (
     Path(__file__).resolve().parents[2] / "data" / "samples" / "dataset.json"
@@ -46,7 +46,12 @@ def fake_gemini(dataset) -> FakeGemini:
 
 
 @pytest.fixture
-def client(fake_repo, fake_gemini):
+def fake_serpapi() -> FakeSerpApi:
+    return FakeSerpApi()
+
+
+@pytest.fixture
+def client(fake_repo, fake_gemini, fake_serpapi):
     test_user = deps.AuthenticatedUser(id=TEST_USER_ID, email="test@example.com")
     app.dependency_overrides[deps.get_current_user] = lambda: test_user
     app.dependency_overrides[deps.enforce_upload_rate_limit] = lambda: test_user
@@ -58,6 +63,7 @@ def client(fake_repo, fake_gemini):
         deps.get_profile_optimizer_gemini,
     ):
         app.dependency_overrides[gemini_dep] = lambda: fake_gemini
+    app.dependency_overrides[deps.get_serpapi_client] = lambda: fake_serpapi
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

@@ -13,6 +13,7 @@ from app.api.routes import (
     gap_reports,
     health,
     interviews,
+    job_radar,
     profiles,
     resumes,
 )
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(interviews.router, prefix="/api")
     app.include_router(profiles.router, prefix="/api")
     app.include_router(analytics.router, prefix="/api")
+    app.include_router(job_radar.router, prefix="/api")
     return app
 
 

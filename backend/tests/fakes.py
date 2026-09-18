@@ -39,6 +39,7 @@ class FakeRepository:
         self.gap_reports: dict[str, dict] = {}
         self.interview_sets: dict[str, dict] = {}
         self.profile_drafts: dict[str, dict] = {}
+        self.job_radar_searches: dict[str, dict] = {}
         self.uploaded_files: dict[str, bytes] = {}
 
     @staticmethod
@@ -180,6 +181,23 @@ class FakeRepository:
     def insert_profile_draft(self, row):
         return self._insert(self.profile_drafts, row)
 
+    # -- job radar searches --
+
+    def insert_job_radar_search(self, row):
+        stored = {**row, "id": str(uuid.uuid4()), "searched_at": _now()}
+        self.job_radar_searches[stored["id"]] = stored
+        return stored
+
+    def list_job_radar_searches(self, resume_id):
+        rows = [
+            r for r in self.job_radar_searches.values() if r["resume_id"] == resume_id
+        ]
+        return sorted(rows, key=lambda r: r["searched_at"], reverse=True)
+
+    def get_job_radar_search(self, resume_id, search_id):
+        row = self.job_radar_searches.get(search_id)
+        return row if row and row["resume_id"] == resume_id else None
+
 
 class FakeGemini:
     """Dataset-driven stand-in for GeminiClient (same method surface).
@@ -245,3 +263,23 @@ class FakeGemini:
         vector = [0.0] * 4096
         vector[index] = 1.0
         return vector
+
+
+class FakeSerpApi:
+    """In-memory stand-in for SerpApiClient (same method surface).
+
+    ``listings`` is returned verbatim from ``search_jobs`` (default: empty —
+    a zero-result search); ``fail_with`` raises instead (error-path tests).
+    ``calls`` records each ``(role, location)`` search for assertions.
+    """
+
+    def __init__(self, listings: list[dict] | None = None):
+        self.listings = listings or []
+        self.fail_with: Exception | None = None
+        self.calls: list[tuple[str, str]] = []
+
+    def search_jobs(self, role: str, location: str) -> list[dict]:
+        self.calls.append((role, location))
+        if self.fail_with is not None:
+            raise self.fail_with
+        return self.listings
