@@ -34,3 +34,7 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # Job Radar — SerpApi (google_jobs engine). No dedicated Gemini key
+      # needed; it reuses GEMINI_API_KEY_GAP_MAPPER via the Gap Mapper.
+      - key: SERPAPI_API_KEY
+        sync: false
